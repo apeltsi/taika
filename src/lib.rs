@@ -64,7 +64,41 @@ impl<'a> EventLoop<'a> {
                                         .resize_surface(&device, *physical_size);
                                 }
                                 WindowEvent::CloseRequested => window_target.exit(),
-                                WindowEvent::RedrawRequested => {}
+                                WindowEvent::RedrawRequested => {
+                                    let window = window.lock().unwrap();
+                                    let surface = window.get_surface().as_ref().unwrap();
+                                    let frame = surface.get_current_texture().unwrap();
+                                    let view = frame
+                                        .texture
+                                        .create_view(&wgpu::TextureViewDescriptor::default());
+                                    let mut encoder = device.create_command_encoder(
+                                        &wgpu::CommandEncoderDescriptor { label: None },
+                                    );
+                                    {
+                                        let _render_pass = encoder.begin_render_pass(
+                                            &wgpu::RenderPassDescriptor {
+                                                label: None,
+                                                color_attachments: &[Some(
+                                                    wgpu::RenderPassColorAttachment {
+                                                        view: &view,
+                                                        resolve_target: None,
+                                                        ops: wgpu::Operations {
+                                                            load: wgpu::LoadOp::Clear(
+                                                                window.clear_color,
+                                                            ),
+                                                            store: wgpu::StoreOp::Store,
+                                                        },
+                                                    },
+                                                )],
+                                                depth_stencil_attachment: None,
+                                                occlusion_query_set: None,
+                                                timestamp_writes: None,
+                                            },
+                                        );
+                                    }
+                                    queue.submit(std::iter::once(encoder.finish()));
+                                    frame.present();
+                                }
                                 _ => {}
                             }
                         }

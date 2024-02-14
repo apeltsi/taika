@@ -6,7 +6,7 @@ pub struct Window<'a> {
     handle: Arc<winit::window::Window>,
     surface: Option<wgpu::Surface<'a>>,
     surface_config: Option<wgpu::SurfaceConfiguration>,
-    clear_color: wgpu::Color,
+    pub clear_color: wgpu::Color,
 }
 
 impl Window<'_> {
@@ -54,8 +54,8 @@ impl Window<'_> {
     ) {
         let config = self.surface_config.as_ref().unwrap().clone();
         self.surface_config = Some(wgpu::SurfaceConfiguration {
-            width: size.width,
-            height: size.height,
+            width: size.width.max(1),
+            height: size.height.max(1),
             format: config.format,
             present_mode: config.present_mode,
             alpha_mode: config.alpha_mode,
