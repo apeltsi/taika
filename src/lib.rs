@@ -2,6 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use winit::event::{Event, WindowEvent};
 
+pub mod asset_management;
+pub mod rendering;
 pub mod window;
 
 pub struct EventLoop<'a> {
@@ -74,28 +76,11 @@ impl<'a> EventLoop<'a> {
                                     let mut encoder = device.create_command_encoder(
                                         &wgpu::CommandEncoderDescriptor { label: None },
                                     );
-                                    {
-                                        let _render_pass = encoder.begin_render_pass(
-                                            &wgpu::RenderPassDescriptor {
-                                                label: None,
-                                                color_attachments: &[Some(
-                                                    wgpu::RenderPassColorAttachment {
-                                                        view: &view,
-                                                        resolve_target: None,
-                                                        ops: wgpu::Operations {
-                                                            load: wgpu::LoadOp::Clear(
-                                                                window.clear_color,
-                                                            ),
-                                                            store: wgpu::StoreOp::Store,
-                                                        },
-                                                    },
-                                                )],
-                                                depth_stencil_attachment: None,
-                                                occlusion_query_set: None,
-                                                timestamp_writes: None,
-                                            },
-                                        );
-                                    }
+                                    window.get_render_pipeline().lock().unwrap().render(
+                                        &device,
+                                        &mut encoder,
+                                        &view,
+                                    );
                                     queue.submit(std::iter::once(encoder.finish()));
                                     frame.present();
                                 }

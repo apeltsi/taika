@@ -1,16 +1,19 @@
 use std::sync::{Arc, Mutex};
 
-use crate::EventLoop;
+use crate::{rendering::RenderPipeline, EventLoop};
 
 pub struct Window<'a> {
     handle: Arc<winit::window::Window>,
     surface: Option<wgpu::Surface<'a>>,
     surface_config: Option<wgpu::SurfaceConfiguration>,
-    pub clear_color: wgpu::Color,
+    render_pipeline: Arc<Mutex<dyn RenderPipeline>>,
 }
 
 impl Window<'_> {
-    pub fn new<'a>(event_loop: &mut EventLoop<'a>) -> Arc<Mutex<Window<'a>>> {
+    pub fn new<'a>(
+        event_loop: &mut EventLoop<'a>,
+        pipeline: Arc<Mutex<dyn RenderPipeline>>,
+    ) -> Arc<Mutex<Window<'a>>> {
         let window = winit::window::WindowBuilder::new()
             .with_title("Taika window")
             .build(event_loop.get_event_loop())
@@ -19,7 +22,7 @@ impl Window<'_> {
             handle: Arc::new(window),
             surface: None,
             surface_config: None,
-            clear_color: wgpu::Color::BLACK,
+            render_pipeline: pipeline,
         };
         let window = Arc::new(Mutex::new(window));
         event_loop.windows.push(window.clone());
@@ -93,5 +96,9 @@ impl Window<'_> {
 
     pub fn set_fullscreen(&mut self, fullscreen: Option<winit::window::Fullscreen>) {
         self.handle.set_fullscreen(fullscreen);
+    }
+
+    pub fn get_render_pipeline(&self) -> Arc<Mutex<dyn RenderPipeline>> {
+        self.render_pipeline.clone()
     }
 }
