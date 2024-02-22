@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 winit = "0.29.10"
 wgpu = {version = "0.19.1", features = ["spirv"]}
-tokio = "1.36"
+tokio = {version = "1.36", features = ["full"]}

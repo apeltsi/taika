@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use winit::event::{Event, WindowEvent};
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::ControlFlow,
+};
 
 pub mod asset_management;
 pub mod rendering;
@@ -14,6 +17,7 @@ pub struct EventLoop<'a> {
 impl<'a> EventLoop<'a> {
     pub fn new() -> Result<EventLoop<'a>, winit::error::EventLoopError> {
         let event_loop = winit::event_loop::EventLoop::new()?;
+        event_loop.set_control_flow(ControlFlow::Wait);
         Ok(EventLoop {
             handle: event_loop,
             windows: Vec::new(),
@@ -33,8 +37,8 @@ impl<'a> EventLoop<'a> {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
+                force_fallback_adapter: false,
                 compatible_surface: self.windows[0].lock().unwrap().get_surface().as_ref(),
-                ..Default::default()
             })
             .await
             .unwrap();
@@ -43,18 +47,37 @@ impl<'a> EventLoop<'a> {
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::downlevel_defaults(),
+                    required_limits: wgpu::Limits::downlevel_webgl2_defaults()
+                        .using_resolution(adapter.limits()),
                 },
                 None,
             )
             .await
             .expect("Failed to create device");
+        let adapter_info = adapter.get_info();
+        println!(
+            "Backend: {:?} | Adapter: {:?} | Driver: {:?}",
+            adapter_info.backend, adapter_info.name, adapter_info.driver_info
+        );
+
         for window in &self.windows {
             window.lock().unwrap().configure_surface(&adapter, &device);
         }
         let windows = self.windows.clone();
+        let mut first_frame = true;
         self.handle
             .run(move |event, window_target| {
+                if first_frame {
+                    // lets request a redraw for all windows
+                    for window in windows.iter() {
+                        window.lock().unwrap().request_redraw();
+                    }
+                    first_frame = false;
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                window_target.set_control_flow(ControlFlow::Poll);
+                #[cfg(target_arch = "wasm32")]
+                window_target.set_control_flow(ControlFlow::Wait);
                 if let Event::WindowEvent { window_id, event } = &event {
                     for window in windows.iter() {
                         if window.lock().unwrap().get_window_id() == *window_id {
@@ -69,7 +92,14 @@ impl<'a> EventLoop<'a> {
                                 WindowEvent::RedrawRequested => {
                                     let window = window.lock().unwrap();
                                     let surface = window.get_surface().as_ref().unwrap();
-                                    let frame = surface.get_current_texture().unwrap();
+                                    let frame = surface.get_current_texture();
+                                    if let Err(err) = frame {
+                                        println!("Failed to get current frame. Window state listed below:");
+                                        window.print_debug();
+                                        println!("Error: {:?}", err);
+                                        return;
+                                    }
+                                    let frame = frame.unwrap();
                                     let view = frame
                                         .texture
                                         .create_view(&wgpu::TextureViewDescriptor::default());
@@ -79,10 +109,12 @@ impl<'a> EventLoop<'a> {
                                     window.get_render_pipeline().lock().unwrap().render(
                                         &device,
                                         &mut encoder,
+                                        &queue,
                                         &view,
                                     );
-                                    queue.submit(std::iter::once(encoder.finish()));
+                                    queue.submit(Some(encoder.finish()));
                                     frame.present();
+                                    window.request_redraw();
                                 }
                                 _ => {}
                             }

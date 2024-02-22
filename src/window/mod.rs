@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use winit::dpi::PhysicalSize;
+
 use crate::{rendering::RenderPipeline, EventLoop};
 
 pub struct Window<'a> {
@@ -16,6 +18,7 @@ impl Window<'_> {
     ) -> Arc<Mutex<Window<'a>>> {
         let window = winit::window::WindowBuilder::new()
             .with_title("Taika window")
+            .with_min_inner_size(winit::dpi::LogicalSize::new(20.0, 20.0))
             .build(event_loop.get_event_loop())
             .unwrap();
         let window = Window {
@@ -38,14 +41,32 @@ impl Window<'_> {
         Ok(())
     }
 
+    pub(crate) fn request_redraw(&self) {
+        self.handle.request_redraw();
+    }
+
     pub(crate) fn configure_surface(&mut self, adapter: &wgpu::Adapter, device: &wgpu::Device) {
         let size = self.handle.inner_size();
-        let config = self
-            .surface
-            .as_mut()
-            .unwrap()
-            .get_default_config(adapter, size.width, size.height)
-            .unwrap();
+        let size: PhysicalSize<u32> = (size.width.max(1), size.height.max(1)).into();
+
+        let swapchain_capabilities = self.surface.as_mut().unwrap().get_capabilities(&adapter);
+        let swapchain_format = swapchain_capabilities.formats[0];
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            #[cfg(target_arch = "wasm32")]
+            format: swapchain_format,
+            #[cfg(not(target_arch = "wasm32"))]
+            format: swapchain_format.remove_srgb_suffix(),
+            width: size.width,
+            height: size.height,
+            present_mode: wgpu::PresentMode::AutoVsync,
+            alpha_mode: swapchain_capabilities.alpha_modes[0],
+            #[cfg(not(target_arch = "wasm32"))]
+            view_formats: vec![swapchain_format.add_srgb_suffix()],
+            #[cfg(target_arch = "wasm32")]
+            view_formats: vec![swapchain_format],
+            desired_maximum_frame_latency: 2,
+        };
         self.surface.as_mut().unwrap().configure(device, &config);
         self.surface_config = Some(config);
     }
@@ -100,5 +121,17 @@ impl Window<'_> {
 
     pub fn get_render_pipeline(&self) -> Arc<Mutex<dyn RenderPipeline>> {
         self.render_pipeline.clone()
+    }
+
+    pub fn print_debug(&self) {
+        // print the title, size, current state of the window
+        println!("Title: {}", self.handle.title());
+        println!("Size: {:?}", self.handle.inner_size());
+        println!("Position: {:?}", self.handle.outer_position());
+        println!("Fullscreen: {:?}", self.handle.fullscreen());
+        println!("Visible: {:?}", self.handle.is_visible());
+        if let Some(surface) = &self.surface {
+            println!("Surface Ok: {:?}", surface.get_current_texture().is_ok());
+        }
     }
 }
