@@ -27,3 +27,27 @@ impl ResolvableAsset for DiskAsset {
         &self.path
     }
 }
+
+pub struct MemoryAsset {
+    data: Vec<u8>,
+    name: String,
+}
+
+impl MemoryAsset {
+    pub fn new(data: Vec<u8>, name: &str) -> Self {
+        MemoryAsset {
+            data,
+            name: name.to_string(),
+        }
+    }
+}
+
+impl ResolvableAsset for MemoryAsset {
+    fn resolve(&self) -> Vec<u8> {
+        self.data.clone()
+    }
+
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+}

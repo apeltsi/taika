@@ -6,7 +6,7 @@ pub trait Drawable<'b> {
         'a: 'b;
 
     fn draw<'a>(
-        &mut self,
+        &'a mut self,
         frame_num: u64,
         device: &wgpu::Device,
         queue: &wgpu::Queue,

@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+pub use wgpu;
 
 use winit::{
     event::{Event, WindowEvent},

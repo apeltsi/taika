@@ -10,9 +10,15 @@ impl Shader {
     pub fn new(device: &wgpu::Device, source: Box<dyn ResolvableAsset>) -> Self {
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
-            source: wgpu::util::make_spirv(&source.resolve()),
+            source: wgpu::ShaderSource::Wgsl(
+                String::from_utf8(source.resolve()).unwrap().as_str().into(),
+            ),
         });
         Shader { module }
+    }
+
+    pub fn get_module(&self) -> &wgpu::ShaderModule {
+        &self.module
     }
 }
 
