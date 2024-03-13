@@ -1,7 +1,7 @@
 use wgpu::RenderPass;
 
 pub trait Drawable<'b> {
-    fn init<'a>(&mut self, device: &wgpu::Device)
+    fn init<'a>(&mut self, device: &wgpu::Device, bind_group_layout: &wgpu::BindGroupLayout)
     where
         'a: 'b;
 

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use wgpu::{CommandEncoder, Device, Queue};
 
 use self::drawable::Drawable;
@@ -5,20 +7,6 @@ use self::drawable::Drawable;
 pub mod drawable;
 pub mod shader;
 pub mod vertex;
-
-const IDENTITY_MATRIX: [[f32; 4]; 4] = [
-    [1.0, 0.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0, 0.0],
-    [0.0, 0.0, 1.0, 0.0],
-    [0.0, 0.0, 0.0, 1.0],
-];
-
-#[repr(C)]
-#[derive(bytemuck::Pod, bytemuck::Zeroable, Copy, Clone)]
-struct CameraMatrix {
-    view: [[f32; 4]; 4],
-    camera: [[f32; 4]; 4],
-}
 
 pub trait RenderPass {
     fn render<'a>(
@@ -30,7 +18,7 @@ pub trait RenderPass {
         global_bind_group: &'a wgpu::BindGroup,
     );
 
-    fn init<'a>(&'a mut self, device: &Device);
+    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout);
 }
 
 pub trait RenderPipeline {
@@ -42,21 +30,21 @@ pub trait RenderPipeline {
         target: &'a wgpu::TextureView,
     );
 
-    fn init<'a>(&'a mut self, device: &Device);
+    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout);
 }
 
 pub struct DefaultRenderPipeline {
     render_passes: Vec<Box<dyn RenderPass>>,
-    global_bind_group: Option<wgpu::BindGroup>,
-    camera_matrix_buffer: Option<wgpu::Buffer>,
+    global_bind_group: Box<dyn GlobalBindGroup>,
+    initialized: bool,
 }
 
 impl DefaultRenderPipeline {
-    pub fn new() -> Self {
+    pub fn new(global_bind_group: Box<dyn GlobalBindGroup>) -> Self {
         DefaultRenderPipeline {
             render_passes: Vec::new(),
-            global_bind_group: None,
-            camera_matrix_buffer: None,
+            initialized: false,
+            global_bind_group,
         }
     }
 
@@ -73,51 +61,27 @@ impl RenderPipeline for DefaultRenderPipeline {
         queue: &Queue,
         target: &wgpu::TextureView,
     ) {
-        if self.global_bind_group.is_none() {
-            self.init(device);
-            queue.write_buffer(
-                self.camera_matrix_buffer.as_ref().unwrap(),
-                0,
-                bytemuck::cast_slice(&[CameraMatrix {
-                    view: IDENTITY_MATRIX,
-                    camera: IDENTITY_MATRIX,
-                }]),
-            );
+        if !self.initialized {
+            let bind_group_layout = self.global_bind_group.get_layout(device);
+            self.init(device, &bind_group_layout);
+            self.initialized = true;
         }
+        self.global_bind_group.pre_render(device, queue);
         for render_pass in &mut self.render_passes {
             render_pass.render(
                 device,
                 encoder,
                 queue,
                 target,
-                self.global_bind_group.as_ref().unwrap(),
+                &self.global_bind_group.get_group(),
             );
         }
     }
 
-    fn init<'a>(&'a mut self, device: &Device) {
-        self.camera_matrix_buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Camera Matrix Buffer"),
-            size: (std::mem::size_of::<[[f32; 4]; 4]>() as u64) * 2,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        }));
-        let global_bind_group_layout = get_global_bind_group_layout(&device);
-        let global_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &global_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: self.camera_matrix_buffer.as_ref().unwrap(),
-                    offset: 0,
-                    size: wgpu::BufferSize::new((std::mem::size_of::<[[f32; 4]; 4]>() as u64) * 2),
-                }),
-            }],
-            label: None,
-        });
-        self.global_bind_group = Some(global_bind_group);
+    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout) {
+        self.global_bind_group.init(device);
         for pass in self.render_passes.iter_mut() {
-            pass.init(device);
+            pass.init(device, bind_group_layout);
         }
     }
 }
@@ -167,25 +131,17 @@ impl RenderPass for PrimaryDrawPass<'_> {
         }
     }
 
-    fn init<'a>(&'a mut self, device: &Device) {
+    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout) {
         for d in self.drawables.iter_mut() {
-            d.init(device);
+            d.init(device, bind_group_layout);
         }
     }
 }
 
-pub fn get_global_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Camera Bind Group Layout"),
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            },
-            count: None,
-        }],
-    })
+/// A bind group that is applied render-pipeline wide
+pub trait GlobalBindGroup {
+    fn get_layout(&mut self, device: &wgpu::Device) -> Rc<wgpu::BindGroupLayout>;
+    fn init(&mut self, device: &wgpu::Device);
+    fn get_group(&mut self) -> Rc<wgpu::BindGroup>;
+    fn pre_render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue);
 }
