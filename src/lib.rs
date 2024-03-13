@@ -8,6 +8,7 @@ use winit::{
 
 pub mod asset_management;
 pub mod events;
+pub mod math;
 pub mod rendering;
 pub mod window;
 

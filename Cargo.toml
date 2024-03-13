@@ -11,3 +11,4 @@ winit = "0.29.14"
 wgpu = {version = "0.19.3"}
 tokio = {version = "1.36", features = ["full"]}
 bytemuck = {version = "1.14.3", features = ["derive"]}
+rand = "0.8.5"
