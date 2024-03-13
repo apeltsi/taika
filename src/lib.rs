@@ -7,6 +7,7 @@ use winit::{
 };
 
 pub mod asset_management;
+pub mod events;
 pub mod rendering;
 pub mod window;
 
@@ -71,7 +72,9 @@ impl<'a> EventLoop<'a> {
                 if first_frame {
                     // lets request a redraw for all windows
                     for window in windows.iter() {
-                        window.lock().unwrap().request_redraw();
+                        let mut window = window.lock().unwrap();
+                        window.request_redraw();
+                        window.do_open();
                     }
                     first_frame = false;
                 }
@@ -89,9 +92,16 @@ impl<'a> EventLoop<'a> {
                                         .unwrap()
                                         .resize_surface(&device, *physical_size);
                                 }
-                                WindowEvent::CloseRequested => window_target.exit(),
+                                WindowEvent::CloseRequested => {
+                                    window.lock().unwrap().do_closed();
+                                    window_target.exit();
+                                },
+                                WindowEvent::Focused(focused) => {
+                                    window.lock().unwrap().do_focus(*focused);
+                                }
                                 WindowEvent::RedrawRequested => {
-                                    let window = window.lock().unwrap();
+                                    let mut window = window.lock().unwrap();
+                                    window.do_frame();
                                     let surface = window.get_surface().as_ref().unwrap();
                                     let frame = surface.get_current_texture();
                                     if let Err(err) = frame {
@@ -115,6 +125,7 @@ impl<'a> EventLoop<'a> {
                                     );
                                     queue.submit(Some(encoder.finish()));
                                     frame.present();
+                                    window.do_after_frame();
                                     window.request_redraw();
                                 }
                                 _ => {}

@@ -2,19 +2,21 @@ use std::sync::{Arc, Mutex};
 
 use winit::dpi::PhysicalSize;
 
-use crate::{rendering::RenderPipeline, EventLoop};
+use crate::{events::EventHandler, rendering::RenderPipeline, EventLoop};
 
 pub struct Window<'a> {
     handle: Arc<winit::window::Window>,
     surface: Option<wgpu::Surface<'a>>,
     surface_config: Option<wgpu::SurfaceConfiguration>,
     render_pipeline: Arc<Mutex<dyn RenderPipeline>>,
+    event_handler: Box<dyn EventHandler>,
 }
 
 impl Window<'_> {
     pub fn new<'a>(
         event_loop: &mut EventLoop<'a>,
         pipeline: Arc<Mutex<dyn RenderPipeline>>,
+        event_handler: Box<dyn EventHandler>,
     ) -> Arc<Mutex<Window<'a>>> {
         let window = winit::window::WindowBuilder::new()
             .with_title("Taika window")
@@ -26,6 +28,7 @@ impl Window<'_> {
             surface: None,
             surface_config: None,
             render_pipeline: pipeline,
+            event_handler,
         };
         let window = Arc::new(Mutex::new(window));
         event_loop.windows.push(window.clone());
@@ -88,6 +91,8 @@ impl Window<'_> {
             view_formats: config.view_formats.clone(),
         });
         self.surface.as_mut().unwrap().configure(device, &config);
+        self.event_handler
+            .window_resize(size.width.max(1), size.height.max(1))
     }
 
     pub fn get_handle(&self) -> &winit::window::Window {
@@ -133,5 +138,29 @@ impl Window<'_> {
         if let Some(surface) = &self.surface {
             println!("Surface Ok: {:?}", surface.get_current_texture().is_ok());
         }
+    }
+
+    pub(crate) fn do_frame(&mut self) {
+        self.event_handler.window_frame();
+    }
+
+    pub(crate) fn do_after_frame(&mut self) {
+        self.event_handler.window_after_frame();
+    }
+
+    pub(crate) fn do_focus(&mut self, focused: bool) {
+        if focused {
+            self.event_handler.window_focus();
+        } else {
+            self.event_handler.window_unfocus();
+        }
+    }
+
+    pub(crate) fn do_open(&mut self) {
+        self.event_handler.window_open();
+    }
+
+    pub(crate) fn do_closed(&mut self) {
+        self.event_handler.window_close();
     }
 }
