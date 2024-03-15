@@ -49,8 +49,8 @@ impl<'a> EventLoop<'a> {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::downlevel_webgl2_defaults()
+                    required_features: wgpu::Features::VERTEX_WRITABLE_STORAGE, // TODO: Make this configurable
+                    required_limits: wgpu::Limits::downlevel_defaults()
                         .using_resolution(adapter.limits()),
                 },
                 None,
@@ -118,7 +118,9 @@ impl<'a> EventLoop<'a> {
                                     let mut encoder = device.create_command_encoder(
                                         &wgpu::CommandEncoderDescriptor { label: None },
                                     );
-                                    window.get_render_pipeline().lock().unwrap().render(
+                                    let pipeline = window.get_render_pipeline();
+                                    let pipeline = pipeline.lock();
+                                    pipeline.unwrap().render(
                                         &device,
                                         &mut encoder,
                                         &queue,

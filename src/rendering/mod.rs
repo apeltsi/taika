@@ -1,9 +1,13 @@
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
 
 use wgpu::{CommandEncoder, Device, Queue};
 
 use self::drawable::Drawable;
 
+pub mod compute;
 pub mod drawable;
 pub mod shader;
 pub mod vertex;
@@ -37,14 +41,16 @@ pub struct DefaultRenderPipeline {
     render_passes: Vec<Box<dyn RenderPass>>,
     global_bind_group: Box<dyn GlobalBindGroup>,
     initialized: bool,
+    name: String,
 }
 
 impl DefaultRenderPipeline {
-    pub fn new(global_bind_group: Box<dyn GlobalBindGroup>) -> Self {
+    pub fn new(global_bind_group: Box<dyn GlobalBindGroup>, name: &str) -> Self {
         DefaultRenderPipeline {
             render_passes: Vec::new(),
             initialized: false,
             global_bind_group,
+            name: name.to_string(),
         }
     }
 
@@ -74,7 +80,7 @@ impl RenderPipeline for DefaultRenderPipeline {
                 queue,
                 target,
                 &self.global_bind_group.get_group(),
-            );
+            )
         }
     }
 
@@ -87,17 +93,19 @@ impl RenderPipeline for DefaultRenderPipeline {
 }
 
 pub struct PrimaryDrawPass<'a> {
-    drawables: Vec<Box<dyn Drawable<'a>>>,
+    drawables: Vec<Arc<Mutex<dyn Drawable<'a>>>>,
+    name: String,
 }
 
 impl<'a> PrimaryDrawPass<'a> {
-    pub fn new() -> Self {
+    pub fn new(name: &str) -> Self {
         PrimaryDrawPass {
             drawables: Vec::new(),
+            name: name.to_string(),
         }
     }
 
-    pub fn add_drawable(&mut self, drawable: Box<dyn Drawable<'a>>) {
+    pub fn add_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
         self.drawables.push(drawable);
     }
 }
@@ -111,9 +119,14 @@ impl RenderPass for PrimaryDrawPass<'_> {
         target: &wgpu::TextureView,
         global_bind_group: &wgpu::BindGroup,
     ) {
+        // first lets acquire all mutexes
+        let mut drawables = Vec::new();
+        for d in self.drawables.iter_mut() {
+            drawables.push(d.lock().unwrap());
+        }
         // Draw some basic shapes
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
+            label: Some(&self.name),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &target,
                 resolve_target: None,
@@ -126,14 +139,14 @@ impl RenderPass for PrimaryDrawPass<'_> {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
-        for d in self.drawables.iter_mut() {
+        for d in drawables.iter_mut() {
             d.draw(0, device, queue, &mut rpass, &global_bind_group);
         }
     }
 
     fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout) {
         for d in self.drawables.iter_mut() {
-            d.init(device, bind_group_layout);
+            d.lock().unwrap().init(device, bind_group_layout);
         }
     }
 }
