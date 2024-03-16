@@ -53,7 +53,12 @@ impl RenderPass for ComputePass {
         }
     }
 
-    fn init<'a>(&'a mut self, device: &wgpu::Device, bind_group_layout: &wgpu::BindGroupLayout) {
+    fn init<'a>(
+        &'a mut self,
+        device: &wgpu::Device,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        _target_properties: &super::TargetProperties,
+    ) {
         for task in &mut self.tasks {
             task.lock().unwrap().init(device, bind_group_layout);
         }

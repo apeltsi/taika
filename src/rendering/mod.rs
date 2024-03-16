@@ -5,6 +5,8 @@ use std::{
 
 use wgpu::{CommandEncoder, Device, Queue};
 
+use crate::window::TargetProperties;
+
 use self::drawable::Drawable;
 
 pub mod compute;
@@ -22,7 +24,12 @@ pub trait RenderPass {
         global_bind_group: &'a wgpu::BindGroup,
     );
 
-    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout);
+    fn init<'a>(
+        &'a mut self,
+        device: &Device,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        target_properties: &TargetProperties,
+    );
 }
 
 pub trait RenderPipeline {
@@ -32,9 +39,15 @@ pub trait RenderPipeline {
         encoder: &mut CommandEncoder,
         queue: &Queue,
         target: &'a wgpu::TextureView,
+        target_properties: &TargetProperties,
     );
 
-    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout);
+    fn init<'a>(
+        &'a mut self,
+        device: &Device,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        target_properties: &TargetProperties,
+    );
 }
 
 pub struct DefaultRenderPipeline {
@@ -66,10 +79,11 @@ impl RenderPipeline for DefaultRenderPipeline {
         encoder: &mut CommandEncoder,
         queue: &Queue,
         target: &wgpu::TextureView,
+        target_properties: &TargetProperties,
     ) {
         if !self.initialized {
             let bind_group_layout = self.global_bind_group.get_layout(device);
-            self.init(device, &bind_group_layout);
+            self.init(device, &bind_group_layout, target_properties);
             self.initialized = true;
         }
         self.global_bind_group.pre_render(device, queue);
@@ -84,10 +98,15 @@ impl RenderPipeline for DefaultRenderPipeline {
         }
     }
 
-    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout) {
+    fn init<'a>(
+        &'a mut self,
+        device: &Device,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        target_properties: &TargetProperties,
+    ) {
         self.global_bind_group.init(device);
         for pass in self.render_passes.iter_mut() {
-            pass.init(device, bind_group_layout);
+            pass.init(device, bind_group_layout, target_properties);
         }
     }
 }
@@ -119,7 +138,6 @@ impl RenderPass for PrimaryDrawPass<'_> {
         target: &wgpu::TextureView,
         global_bind_group: &wgpu::BindGroup,
     ) {
-        // first lets acquire all mutexes
         let mut drawables = Vec::new();
         for d in self.drawables.iter_mut() {
             drawables.push(d.lock().unwrap());
@@ -144,9 +162,16 @@ impl RenderPass for PrimaryDrawPass<'_> {
         }
     }
 
-    fn init<'a>(&'a mut self, device: &Device, bind_group_layout: &wgpu::BindGroupLayout) {
+    fn init<'a>(
+        &'a mut self,
+        device: &Device,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        target_properties: &TargetProperties,
+    ) {
         for d in self.drawables.iter_mut() {
-            d.lock().unwrap().init(device, bind_group_layout);
+            d.lock()
+                .unwrap()
+                .init(device, bind_group_layout, target_properties);
         }
     }
 }

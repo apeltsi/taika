@@ -10,6 +10,7 @@ pub struct Window<'a> {
     surface_config: Option<wgpu::SurfaceConfiguration>,
     render_pipeline: Arc<Mutex<dyn RenderPipeline>>,
     event_handler: Box<dyn EventHandler>,
+    target_properties: TargetProperties,
 }
 
 impl Window<'_> {
@@ -29,6 +30,10 @@ impl Window<'_> {
             surface_config: None,
             render_pipeline: pipeline,
             event_handler,
+            target_properties: TargetProperties {
+                format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                view_format: wgpu::TextureFormat::Rgba8Unorm,
+            },
         };
         let window = Arc::new(Mutex::new(window));
         event_loop.windows.push(window.clone());
@@ -54,20 +59,25 @@ impl Window<'_> {
 
         let swapchain_capabilities = self.surface.as_mut().unwrap().get_capabilities(&adapter);
         let swapchain_format = swapchain_capabilities.formats[0];
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let swapchain_format = swapchain_format.add_srgb_suffix();
+            self.target_properties.format = swapchain_format.remove_srgb_suffix();
+        }
+        self.target_properties.view_format = swapchain_format;
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.target_properties.format = swapchain_format;
+        }
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            #[cfg(target_arch = "wasm32")]
-            format: swapchain_format,
-            #[cfg(not(target_arch = "wasm32"))]
-            format: swapchain_format.remove_srgb_suffix(),
+            format: self.target_properties.format,
             width: size.width,
             height: size.height,
             present_mode: wgpu::PresentMode::AutoVsync,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
-            #[cfg(not(target_arch = "wasm32"))]
-            view_formats: vec![swapchain_format.add_srgb_suffix()],
-            #[cfg(target_arch = "wasm32")]
-            view_formats: vec![swapchain_format],
+            view_formats: vec![self.target_properties.view_format],
             desired_maximum_frame_latency: 2,
         };
         self.surface.as_mut().unwrap().configure(device, &config);
@@ -163,4 +173,14 @@ impl Window<'_> {
     pub(crate) fn do_closed(&mut self) {
         self.event_handler.window_close();
     }
+
+    pub fn get_target_properties(&self) -> &TargetProperties {
+        &self.target_properties
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TargetProperties {
+    pub format: wgpu::TextureFormat,
+    pub view_format: wgpu::TextureFormat,
 }

@@ -125,6 +125,7 @@ impl<'a> EventLoop<'a> {
                                         &mut encoder,
                                         &queue,
                                         &view,
+                                        window.get_target_properties()
                                     );
                                     queue.submit(Some(encoder.finish()));
                                     frame.present();
