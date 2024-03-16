@@ -114,7 +114,10 @@ impl<'a> EventLoop<'a> {
                                     let frame = frame.unwrap();
                                     let view = frame
                                         .texture
-                                        .create_view(&wgpu::TextureViewDescriptor::default());
+                                        .create_view(&wgpu::TextureViewDescriptor {
+                                            format: Some(window.get_target_properties().view_format),
+                                            ..Default::default()
+                                        });
                                     let mut encoder = device.create_command_encoder(
                                         &wgpu::CommandEncoderDescriptor { label: None },
                                     );

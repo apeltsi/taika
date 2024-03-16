@@ -57,12 +57,12 @@ impl Window<'_> {
         let size = self.handle.inner_size();
         let size: PhysicalSize<u32> = (size.width.max(1), size.height.max(1)).into();
 
-        let swapchain_capabilities = self.surface.as_mut().unwrap().get_capabilities(&adapter);
-        let swapchain_format = swapchain_capabilities.formats[0];
+        let swapchain_capabilities = self.surface.as_mut().unwrap().get_capabilities(adapter);
+        let mut swapchain_format = swapchain_capabilities.formats[0];
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let swapchain_format = swapchain_format.add_srgb_suffix();
+            swapchain_format = swapchain_format.add_srgb_suffix();
             self.target_properties.format = swapchain_format.remove_srgb_suffix();
         }
         self.target_properties.view_format = swapchain_format;
