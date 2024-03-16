@@ -31,8 +31,8 @@ impl Window<'_> {
             render_pipeline: pipeline,
             event_handler,
             target_properties: TargetProperties {
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                view_format: wgpu::TextureFormat::Rgba8Unorm,
+                format: wgpu::TextureFormat::Rgba8UnormSrgb, // Temporary values will be replaced
+                view_format: wgpu::TextureFormat::Rgba8Unorm, // later in runtime
             },
         };
         let window = Arc::new(Mutex::new(window));
@@ -100,7 +100,10 @@ impl Window<'_> {
             desired_maximum_frame_latency: config.desired_maximum_frame_latency,
             view_formats: config.view_formats.clone(),
         });
-        self.surface.as_mut().unwrap().configure(device, &config);
+        self.surface
+            .as_mut()
+            .unwrap()
+            .configure(device, self.surface_config.as_ref().unwrap());
         self.event_handler
             .window_resize(size.width.max(1), size.height.max(1))
     }
