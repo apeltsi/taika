@@ -65,6 +65,7 @@ impl<'a> EventLoop<'a> {
 
         for window in &self.windows {
             window.lock().unwrap().configure_surface(&adapter, &device);
+            window.lock().unwrap().do_device_init(&device, &queue);
         }
         let windows = self.windows.clone();
         let mut first_frame = true;
