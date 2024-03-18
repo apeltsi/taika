@@ -88,6 +88,7 @@ impl Window<'_> {
         &mut self,
         device: &wgpu::Device,
         size: winit::dpi::PhysicalSize<u32>,
+        queue: &wgpu::Queue,
     ) {
         let config = self.surface_config.as_ref().unwrap().clone();
         self.surface_config = Some(wgpu::SurfaceConfiguration {
@@ -105,7 +106,7 @@ impl Window<'_> {
             .unwrap()
             .configure(device, self.surface_config.as_ref().unwrap());
         self.event_handler
-            .window_resize(size.width.max(1), size.height.max(1))
+            .window_resize(size.width.max(1), size.height.max(1), device, queue)
     }
 
     pub fn get_handle(&self) -> &winit::window::Window {

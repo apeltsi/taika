@@ -51,7 +51,7 @@ pub trait RenderPipeline {
 }
 
 pub struct DefaultRenderPipeline {
-    render_passes: Vec<Box<dyn RenderPass>>,
+    render_passes: Vec<Arc<Mutex<dyn RenderPass>>>,
     global_bind_group: Box<dyn GlobalBindGroup>,
     initialized: bool,
     name: String,
@@ -67,7 +67,7 @@ impl DefaultRenderPipeline {
         }
     }
 
-    pub fn add_render_pass(&mut self, render_pass: Box<dyn RenderPass>) {
+    pub fn add_render_pass(&mut self, render_pass: Arc<Mutex<dyn RenderPass>>) {
         self.render_passes.push(render_pass);
     }
 }
@@ -88,7 +88,7 @@ impl RenderPipeline for DefaultRenderPipeline {
         }
         self.global_bind_group.pre_render(device, queue);
         for render_pass in &mut self.render_passes {
-            render_pass.render(
+            render_pass.lock().unwrap().render(
                 device,
                 encoder,
                 queue,
@@ -106,7 +106,9 @@ impl RenderPipeline for DefaultRenderPipeline {
     ) {
         self.global_bind_group.init(device);
         for pass in self.render_passes.iter_mut() {
-            pass.init(device, bind_group_layout, target_properties);
+            pass.lock()
+                .unwrap()
+                .init(device, bind_group_layout, target_properties);
         }
     }
 }
@@ -114,18 +116,24 @@ impl RenderPipeline for DefaultRenderPipeline {
 pub struct PrimaryDrawPass<'a> {
     drawables: Vec<Arc<Mutex<dyn Drawable<'a>>>>,
     name: String,
+    target: Option<Arc<Mutex<wgpu::TextureView>>>,
 }
 
 impl<'a> PrimaryDrawPass<'a> {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &str, target: Option<Arc<Mutex<wgpu::TextureView>>>) -> Self {
         PrimaryDrawPass {
             drawables: Vec::new(),
             name: name.to_string(),
+            target,
         }
     }
 
     pub fn add_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
         self.drawables.push(drawable);
+    }
+
+    pub fn set_target(&mut self, target: Option<Arc<Mutex<wgpu::TextureView>>>) {
+        self.target = target;
     }
 }
 
@@ -142,11 +150,21 @@ impl RenderPass for PrimaryDrawPass<'_> {
         for d in self.drawables.iter_mut() {
             drawables.push(d.lock().unwrap());
         }
-        // Draw some basic shapes
+        let lock = if self.target.is_some() {
+            Some(self.target.as_ref().unwrap().lock().unwrap())
+        } else {
+            None
+        };
+        let target = if let Some(lock) = lock.as_ref() {
+            lock
+        } else {
+            target
+        };
+        // Start wgpu render pass
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some(&self.name),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &target,
+                view: target,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
@@ -158,7 +176,7 @@ impl RenderPass for PrimaryDrawPass<'_> {
             occlusion_query_set: None,
         });
         for d in drawables.iter_mut() {
-            d.draw(0, device, queue, &mut rpass, &global_bind_group);
+            d.draw(0, device, queue, &mut rpass, global_bind_group);
         }
     }
 

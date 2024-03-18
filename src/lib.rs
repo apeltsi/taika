@@ -92,7 +92,7 @@ impl<'a> EventLoop<'a> {
                                     window
                                         .lock()
                                         .unwrap()
-                                        .resize_surface(&device, *physical_size);
+                                        .resize_surface(&device, *physical_size, &queue);
                                 }
                                 WindowEvent::CloseRequested => {
                                     window.lock().unwrap().do_closed();
