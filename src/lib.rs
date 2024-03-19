@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 pub use wgpu;
+pub use winit;
 
 use winit::{
     event::{Event, WindowEvent},
@@ -135,9 +136,10 @@ impl<'a> EventLoop<'a> {
                                     frame.present();
                                     window.do_after_frame();
                                     window.request_redraw();
-                                }
+                                },
                                 _ => {}
                             }
+                            window.lock().unwrap().do_window_event(event);
                         }
                     }
                 }

@@ -177,8 +177,13 @@ impl Window<'_> {
     pub(crate) fn do_closed(&mut self) {
         self.event_handler.window_close();
     }
+
     pub(crate) fn do_device_init(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.event_handler.device_init(device, queue);
+    }
+
+    pub(crate) fn do_window_event(&mut self, event: &winit::event::WindowEvent) {
+        self.event_handler.window_event(event);
     }
 
     pub fn get_target_properties(&self) -> &TargetProperties {
