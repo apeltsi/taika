@@ -117,6 +117,7 @@ pub struct PrimaryDrawPass<'a> {
     drawables: Vec<Arc<Mutex<dyn Drawable<'a>>>>,
     name: String,
     target: Option<Arc<Mutex<wgpu::TextureView>>>,
+    clear_color: wgpu::Color,
 }
 
 impl<'a> PrimaryDrawPass<'a> {
@@ -125,6 +126,7 @@ impl<'a> PrimaryDrawPass<'a> {
             drawables: Vec::new(),
             name: name.to_string(),
             target,
+            clear_color: wgpu::Color::TRANSPARENT,
         }
     }
 
@@ -134,6 +136,10 @@ impl<'a> PrimaryDrawPass<'a> {
 
     pub fn set_target(&mut self, target: Option<Arc<Mutex<wgpu::TextureView>>>) {
         self.target = target;
+    }
+
+    pub fn set_clear_color(&mut self, color: wgpu::Color) {
+        self.clear_color = color;
     }
 }
 
@@ -167,7 +173,7 @@ impl RenderPass for PrimaryDrawPass<'_> {
                 view: target,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    load: wgpu::LoadOp::Clear(self.clear_color),
                     store: wgpu::StoreOp::Store,
                 },
             })],
