@@ -54,6 +54,7 @@ pub struct DefaultRenderPipeline {
     render_passes: Vec<Arc<Mutex<dyn RenderPass>>>,
     global_bind_group: Box<dyn GlobalBindGroup>,
     initialized: bool,
+    #[allow(dead_code)]
     name: String,
 }
 

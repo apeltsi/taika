@@ -22,6 +22,7 @@ impl Shader {
     }
 }
 
+#[allow(dead_code)]
 pub struct ShaderManager {
     shaders: HashMap<String, Shader>,
 }
