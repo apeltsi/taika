@@ -58,13 +58,19 @@ impl<'a> EventLoop<'a> {
             )
             .await
             .expect("Failed to create device");
-        let adapter_info = adapter.get_info();
         for window in &self.windows {
             window.lock().unwrap().configure_surface(&adapter, &device);
-            window.lock().unwrap().do_device_init(&device, &queue);
         }
         let windows = self.windows.clone();
         let mut first_frame = true;
+        let device = Arc::new(Mutex::new(device));
+        let queue = Arc::new(Mutex::new(queue));
+        for window in &self.windows {
+            window
+                .lock()
+                .unwrap()
+                .do_device_init(device.clone(), queue.clone()).await;
+        }
         self.handle
             .run(move |event, window_target| {
                 if first_frame {
@@ -88,7 +94,7 @@ impl<'a> EventLoop<'a> {
                                     window
                                         .lock()
                                         .unwrap()
-                                        .resize_surface(&device, *physical_size, &queue);
+                                        .resize_surface(&device.lock().unwrap(), *physical_size, &queue.lock().unwrap());
                                 }
                                 WindowEvent::CloseRequested => {
                                     window.lock().unwrap().do_closed();
@@ -115,19 +121,19 @@ impl<'a> EventLoop<'a> {
                                             format: Some(window.get_target_properties().view_format),
                                             ..Default::default()
                                         });
-                                    let mut encoder = device.create_command_encoder(
+                                    let mut encoder = device.lock().unwrap().create_command_encoder(
                                         &wgpu::CommandEncoderDescriptor { label: None },
                                     );
                                     let pipeline = window.get_render_pipeline();
                                     let pipeline = pipeline.lock();
                                     pipeline.unwrap().render(
-                                        &device,
+                                        &device.lock().unwrap(),
                                         &mut encoder,
-                                        &queue,
+                                        &queue.lock().unwrap(),
                                         &view,
                                         window.get_target_properties()
                                     );
-                                    queue.submit(Some(encoder.finish()));
+                                    queue.lock().unwrap().submit(Some(encoder.finish()));
                                     frame.present();
                                     window.do_after_frame();
                                     window.request_redraw();

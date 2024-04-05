@@ -1,6 +1,6 @@
 [package]
 name = "taika"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,3 +12,4 @@ wgpu = {version = "0.19.3"}
 tokio = {version = "1.36", features = ["full"]}
 bytemuck = {version = "1.15.0", features = ["derive"]}
 rand = "0.8.5"
+async-trait = "0.1.79"
