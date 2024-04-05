@@ -59,11 +59,6 @@ impl<'a> EventLoop<'a> {
             .await
             .expect("Failed to create device");
         let adapter_info = adapter.get_info();
-        println!(
-            "Backend: {:?} | Adapter: {:?} | Driver: {:?}",
-            adapter_info.backend, adapter_info.name, adapter_info.driver_info
-        );
-
         for window in &self.windows {
             window.lock().unwrap().configure_surface(&adapter, &device);
             window.lock().unwrap().do_device_init(&device, &queue);
