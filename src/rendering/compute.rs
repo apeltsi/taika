@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
-
 use super::RenderPass;
+use crate::window::TargetProperties;
+use std::sync::{Arc, Mutex};
 
 pub trait ComputeTask {
     fn init<'a>(&'a mut self, device: &wgpu::Device, bind_group_layout: &wgpu::BindGroupLayout);
@@ -41,6 +41,8 @@ impl RenderPass for ComputePass {
         queue: &wgpu::Queue,
         _target: &wgpu::TextureView,
         global_bind_group: &'a wgpu::BindGroup,
+        _bind_group_layout: &wgpu::BindGroupLayout,
+        _target_properties: &TargetProperties,
     ) {
         if !self.initialized {
             panic!("ComputePass '{}' not initialized", self.name);

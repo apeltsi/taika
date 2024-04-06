@@ -22,6 +22,8 @@ pub trait RenderPass {
         queue: &Queue,
         target: &wgpu::TextureView,
         global_bind_group: &'a wgpu::BindGroup,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        target_properties: &TargetProperties,
     );
 
     fn init<'a>(
@@ -95,6 +97,8 @@ impl RenderPipeline for DefaultRenderPipeline {
                 queue,
                 target,
                 &self.global_bind_group.get_group(),
+                self.global_bind_group.get_layout(device).as_ref(),
+                target_properties,
             )
         }
     }
@@ -116,6 +120,7 @@ impl RenderPipeline for DefaultRenderPipeline {
 
 pub struct PrimaryDrawPass<'a> {
     drawables: Vec<Arc<Mutex<dyn Drawable<'a>>>>,
+    new_drawables: Vec<Arc<Mutex<dyn Drawable<'a>>>>,
     name: String,
     target: Option<Arc<Mutex<wgpu::TextureView>>>,
     clear_color: wgpu::Color,
@@ -125,6 +130,7 @@ impl<'a> PrimaryDrawPass<'a> {
     pub fn new(name: &str, target: Option<Arc<Mutex<wgpu::TextureView>>>) -> Self {
         PrimaryDrawPass {
             drawables: Vec::new(),
+            new_drawables: Vec::new(),
             name: name.to_string(),
             target,
             clear_color: wgpu::Color::TRANSPARENT,
@@ -132,7 +138,7 @@ impl<'a> PrimaryDrawPass<'a> {
     }
 
     pub fn add_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
-        self.drawables.push(drawable);
+        self.new_drawables.push(drawable);
     }
 
     pub fn set_target(&mut self, target: Option<Arc<Mutex<wgpu::TextureView>>>) {
@@ -152,7 +158,15 @@ impl RenderPass for PrimaryDrawPass<'_> {
         queue: &Queue,
         target: &wgpu::TextureView,
         global_bind_group: &wgpu::BindGroup,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        target_properties: &TargetProperties,
     ) {
+        for d in self.new_drawables.drain(..) {
+            d.lock()
+                .unwrap()
+                .init(device, bind_group_layout, target_properties);
+            self.drawables.push(d);
+        }
         let mut drawables = Vec::new();
         for d in self.drawables.iter_mut() {
             drawables.push(d.lock().unwrap());
