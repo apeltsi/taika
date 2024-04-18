@@ -103,8 +103,8 @@ impl RenderPipeline for DefaultRenderPipeline {
         }
     }
 
-    fn init<'a>(
-        &'a mut self,
+    fn init(
+        &mut self,
         device: &Device,
         bind_group_layout: &wgpu::BindGroupLayout,
         target_properties: &TargetProperties,
@@ -139,6 +139,10 @@ impl<'a> PrimaryDrawPass<'a> {
 
     pub fn add_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
         self.new_drawables.push(drawable);
+    }
+
+    pub fn remove_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
+        self.drawables.retain(|d| Arc::ptr_eq(d, &drawable));
     }
 
     pub fn set_target(&mut self, target: Option<Arc<Mutex<wgpu::TextureView>>>) {
