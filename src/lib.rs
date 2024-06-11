@@ -7,6 +7,7 @@ use winit::{
     event_loop::ControlFlow,
 };
 
+mod app_handler;
 pub mod asset_management;
 pub mod events;
 pub mod math;
@@ -79,83 +80,11 @@ impl<'a> EventLoop<'a> {
                 .do_device_init(device.clone(), queue.clone())
                 .await;
         }
-        self.handle
-            .run(move |event, window_target| {
-                if first_frame {
-                    // lets request a redraw for all windows
-                    for window in windows.iter() {
-                        let mut window = window.lock().unwrap();
-                        window.request_redraw();
-                        window.do_open();
-                    }
-                    first_frame = false;
-                }
-                if *QUIT.lock().unwrap() {
-                    window_target.exit();
-                }
-                #[cfg(not(target_arch = "wasm32"))]
-                window_target.set_control_flow(ControlFlow::Poll);
-                #[cfg(target_arch = "wasm32")]
-                window_target.set_control_flow(ControlFlow::Wait);
-                if let Event::WindowEvent { window_id, event } = &event {
-                    for window in windows.iter() {
-                        if window.lock().unwrap().get_window_id() == *window_id {
-                            match event {
-                                WindowEvent::Resized(physical_size) => {
-                                    window
-                                        .lock()
-                                        .unwrap()
-                                        .resize_surface(&device.lock().unwrap(), *physical_size, &queue.lock().unwrap());
-                                }
-                                WindowEvent::CloseRequested => {
-                                    window.lock().unwrap().do_closed();
-                                    window_target.exit();
-                                },
-                                WindowEvent::Focused(focused) => {
-                                    window.lock().unwrap().do_focus(*focused);
-                                }
-                                WindowEvent::RedrawRequested => {
-                                    let mut window = window.lock().unwrap();
-                                    window.do_frame();
-                                    let surface = window.get_surface().as_ref().unwrap();
-                                    let frame = surface.get_current_texture();
-                                    if let Err(err) = frame {
-                                        println!("Failed to get current frame. Window state listed below:");
-                                        window.print_debug();
-                                        println!("Error: {:?}", err);
-                                        return;
-                                    }
-                                    let frame = frame.unwrap();
-                                    let view = frame
-                                        .texture
-                                        .create_view(&wgpu::TextureViewDescriptor {
-                                            format: Some(window.get_target_properties().view_format),
-                                            ..Default::default()
-                                        });
-                                    let mut encoder = device.lock().unwrap().create_command_encoder(
-                                        &wgpu::CommandEncoderDescriptor { label: None },
-                                    );
-                                    let pipeline = window.get_render_pipeline();
-                                    let pipeline = pipeline.lock();
-                                    pipeline.unwrap().render(
-                                        &device.lock().unwrap(),
-                                        &mut encoder,
-                                        &queue.lock().unwrap(),
-                                        &view,
-                                        window.get_target_properties()
-                                    );
-                                    queue.lock().unwrap().submit(Some(encoder.finish()));
-                                    frame.present();
-                                    window.do_after_frame();
-                                    window.request_redraw();
-                                },
-                                _ => {}
-                            }
-                            window.lock().unwrap().do_window_event(event);
-                        }
-                    }
-                }
-            })
-            .unwrap();
+        let mut state = app_handler::AppState {
+            device,
+            queue,
+            windows,
+        };
+        self.handle.run_app(state).unwrap()
     }
 }
