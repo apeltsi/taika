@@ -8,12 +8,42 @@ pub(crate) struct AppState<'a> {
     pub device: Arc<Mutex<wgpu::Device>>,
     pub queue: Arc<Mutex<wgpu::Queue>>,
     pub windows: Vec<Arc<Mutex<Window<'a>>>>,
+    pub instance: wgpu::Instance,
+    pub adapter: wgpu::Adapter,
 }
 
 impl<'a> ApplicationHandler<()> for AppState<'a> {
-    fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: ()) {}
+    fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, _event: ()) {}
 
-    fn resumed(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {}
+    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        for window in &self.windows {
+            let window_attributes = winit::window::WindowAttributes::default()
+                .with_title(window.lock().unwrap().title.clone())
+                .with_min_inner_size(winit::dpi::LogicalSize::new(20.0, 20.0));
+            let win = event_loop.create_window(window_attributes).unwrap();
+            window.lock().unwrap().init(&self.instance, win).unwrap();
+        }
+
+        for window in &self.windows {
+            window
+                .lock()
+                .unwrap()
+                .configure_surface(&self.adapter, &self.device.lock().unwrap());
+        }
+        let windows = self.windows.clone();
+        let device = self.device.clone();
+        let queue = self.queue.clone();
+        // we have to block with tokio
+        futures::executor::block_on(async move {
+            for window in &windows {
+                window
+                    .lock()
+                    .unwrap()
+                    .do_device_init(device.clone(), queue.clone())
+                    .await;
+            }
+        });
+    }
 
     fn window_event(
         &mut self,
@@ -41,11 +71,10 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
                     WindowEvent::RedrawRequested => {
                         let mut window = window.lock().unwrap();
                         window.do_frame();
-                        let surface = window.get_surface().as_ref().unwrap();
+                        let surface = window.get_surface();
                         let frame = surface.get_current_texture();
                         if let Err(err) = frame {
                             println!("Failed to get current frame. Window state listed below:");
-                            window.print_debug();
                             println!("Error: {:?}", err);
                             return;
                         }

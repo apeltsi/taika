@@ -5,12 +5,17 @@ use winit::dpi::PhysicalSize;
 use crate::{events::EventHandler, rendering::RenderPipeline, EventLoop};
 
 pub struct Window<'a> {
-    handle: Arc<winit::window::Window>,
-    surface: Option<wgpu::Surface<'a>>,
+    instance: Option<WindowInstance<'a>>,
     surface_config: Option<wgpu::SurfaceConfiguration>,
     render_pipeline: Arc<Mutex<dyn RenderPipeline>>,
     event_handler: Box<dyn EventHandler>,
     target_properties: TargetProperties,
+    pub(crate) title: String,
+}
+
+pub struct WindowInstance<'a> {
+    pub handle: Arc<winit::window::Window>,
+    pub surface: wgpu::Surface<'a>,
 }
 
 impl Window<'_> {
@@ -19,13 +24,8 @@ impl Window<'_> {
         pipeline: Arc<Mutex<dyn RenderPipeline>>,
         event_handler: Box<dyn EventHandler>,
     ) -> Arc<Mutex<Window<'a>>> {
-        let window_attributes = winit::window::WindowAttributes::default()
-            .with_title("Taika window")
-            .with_min_inner_size(winit::dpi::LogicalSize::new(20.0, 20.0));
-        let window = event_loop.handle.create_window(window_attributes).unwrap();
         let window = Window {
-            handle: Arc::new(window),
-            surface: None,
+            instance: None,
             surface_config: None,
             render_pipeline: pipeline,
             event_handler,
@@ -33,30 +33,41 @@ impl Window<'_> {
                 format: wgpu::TextureFormat::Rgba8UnormSrgb, // Temporary values will be replaced
                 view_format: wgpu::TextureFormat::Rgba8Unorm, // later in runtime
             },
+            title: "Taika Window".to_string(),
         };
         let window = Arc::new(Mutex::new(window));
         event_loop.windows.push(window.clone());
         window
     }
 
-    pub(crate) fn init_surface(
+    pub(crate) fn init(
         &mut self,
         instance: &wgpu::Instance,
+        window: winit::window::Window,
     ) -> Result<(), wgpu::CreateSurfaceError> {
-        let surface = instance.create_surface(self.handle.clone())?;
-        self.surface = Some(surface);
+        let window = Arc::new(window);
+        let surface = instance.create_surface(window.clone())?;
+        self.instance = Some(WindowInstance {
+            handle: window,
+            surface,
+        });
         Ok(())
     }
 
     pub(crate) fn request_redraw(&self) {
-        self.handle.request_redraw();
+        self.instance.as_ref().unwrap().handle.request_redraw();
     }
 
     pub(crate) fn configure_surface(&mut self, adapter: &wgpu::Adapter, device: &wgpu::Device) {
-        let size = self.handle.inner_size();
+        let size = self.instance.as_ref().unwrap().handle.inner_size();
         let size: PhysicalSize<u32> = (size.width.max(1), size.height.max(1)).into();
 
-        let swapchain_capabilities = self.surface.as_mut().unwrap().get_capabilities(adapter);
+        let swapchain_capabilities = self
+            .instance
+            .as_ref()
+            .unwrap()
+            .surface
+            .get_capabilities(adapter);
         let mut swapchain_format = swapchain_capabilities.formats[0];
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -79,7 +90,11 @@ impl Window<'_> {
             view_formats: vec![self.target_properties.view_format],
             desired_maximum_frame_latency: 2,
         };
-        self.surface.as_mut().unwrap().configure(device, &config);
+        self.instance
+            .as_ref()
+            .unwrap()
+            .surface
+            .configure(device, &config);
         self.surface_config = Some(config);
     }
 
@@ -100,57 +115,63 @@ impl Window<'_> {
             desired_maximum_frame_latency: config.desired_maximum_frame_latency,
             view_formats: config.view_formats.clone(),
         });
-        self.surface
-            .as_mut()
+        self.instance
+            .as_ref()
             .unwrap()
+            .surface
             .configure(device, self.surface_config.as_ref().unwrap());
         self.event_handler
             .window_resize(size.width.max(1), size.height.max(1), device, queue)
     }
 
     pub fn get_handle(&self) -> &winit::window::Window {
-        &self.handle
+        &self.instance.as_ref().unwrap().handle
     }
 
     pub fn get_window_id(&self) -> winit::window::WindowId {
-        self.handle.id()
+        self.instance.as_ref().unwrap().handle.id()
     }
 
-    pub(crate) fn get_surface<'a>(&'a self) -> &Option<wgpu::Surface<'a>> {
-        &self.surface
+    pub(crate) fn get_surface<'a>(&'a self) -> &wgpu::Surface<'a> {
+        &self.instance.as_ref().unwrap().surface
     }
 
     pub fn set_title(&mut self, title: &str) {
-        self.handle.set_title(title);
+        if self.instance.is_none() {
+            self.title = title.to_string();
+        } else {
+            self.instance.as_ref().unwrap().handle.set_title(title);
+        }
     }
 
     pub fn set_size(&mut self, size: winit::dpi::PhysicalSize<u32>) {
         // for now we dont care about the result
-        let _ = self.handle.request_inner_size(size);
+        let _ = self
+            .instance
+            .as_ref()
+            .unwrap()
+            .handle
+            .request_inner_size(size);
     }
 
     pub fn set_position(&mut self, position: winit::dpi::PhysicalPosition<i32>) {
-        self.handle.set_outer_position(position);
+        self.instance
+            .as_ref()
+            .unwrap()
+            .handle
+            .set_outer_position(position);
     }
 
     pub fn set_fullscreen(&mut self, fullscreen: Option<winit::window::Fullscreen>) {
-        self.handle.set_fullscreen(fullscreen);
+        self.instance
+            .as_ref()
+            .unwrap()
+            .handle
+            .set_fullscreen(fullscreen);
     }
 
     pub fn get_render_pipeline(&self) -> Arc<Mutex<dyn RenderPipeline>> {
         self.render_pipeline.clone()
-    }
-
-    pub fn print_debug(&self) {
-        // print the title, size, current state of the window
-        println!("Title: {}", self.handle.title());
-        println!("Size: {:?}", self.handle.inner_size());
-        println!("Position: {:?}", self.handle.outer_position());
-        println!("Fullscreen: {:?}", self.handle.fullscreen());
-        println!("Visible: {:?}", self.handle.is_visible());
-        if let Some(surface) = &self.surface {
-            println!("Surface Ok: {:?}", surface.get_current_texture().is_ok());
-        }
     }
 
     pub(crate) fn do_frame(&mut self) {

@@ -40,14 +40,11 @@ impl<'a> EventLoop<'a> {
     pub async fn run(self) {
         let instance = wgpu::Instance::default();
         // now lets init our windows' surfaces
-        for window in &self.windows {
-            window.lock().unwrap().init_surface(&instance).unwrap();
-        }
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 force_fallback_adapter: false,
-                compatible_surface: self.windows[0].lock().unwrap().get_surface().as_ref(),
+                compatible_surface: None,
             })
             .await
             .unwrap();
@@ -63,23 +60,15 @@ impl<'a> EventLoop<'a> {
             )
             .await
             .expect("Failed to create device");
-        for window in &self.windows {
-            window.lock().unwrap().configure_surface(&adapter, &device);
-        }
         let windows = self.windows.clone();
         let device = Arc::new(Mutex::new(device));
         let queue = Arc::new(Mutex::new(queue));
-        for window in &self.windows {
-            window
-                .lock()
-                .unwrap()
-                .do_device_init(device.clone(), queue.clone())
-                .await;
-        }
         let mut state = app_handler::AppState {
             device,
             queue,
             windows,
+            adapter,
+            instance,
         };
         self.handle.run_app(&mut state).unwrap()
     }
