@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use winit::{application::ApplicationHandler, event::WindowEvent};
 
-use crate::window::Window;
+use crate::{window::Window, QUIT};
 
 pub(crate) struct AppState<'a> {
     pub device: Arc<Mutex<wgpu::Device>>,
@@ -54,6 +54,9 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
         window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
+        if *QUIT.lock().unwrap() {
+            event_loop.exit();
+        }
         for window in self.windows.iter() {
             if window.lock().unwrap().get_window_id() == window_id {
                 match event {
