@@ -43,6 +43,9 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
                     .await;
             }
         });
+        for window in &self.windows {
+            window.lock().unwrap().request_redraw();
+        }
     }
 
     fn window_event(
