@@ -4,6 +4,6 @@ This is very much a work-in-progress. This was originally meant to replace LoiRe
 Currently most settings are hard-coded this will change.
 
 ## Platforms
-Actively tested on windows & linux (wayland). Should work in x11 but no guarrantees currently :)
+Actively tested on Windows, Linux (wayland) and macOS. Should work in x11 but no guarrantees currently :)
 
 Web might happen one day
