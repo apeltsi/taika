@@ -4,18 +4,16 @@ use winit::{application::ApplicationHandler, event::WindowEvent};
 
 use crate::window::Window;
 
-struct AppEvent;
-
 pub(crate) struct AppState<'a> {
     pub device: Arc<Mutex<wgpu::Device>>,
     pub queue: Arc<Mutex<wgpu::Queue>>,
     pub windows: Vec<Arc<Mutex<Window<'a>>>>,
 }
 
-impl<'a> ApplicationHandler<AppEvent> for AppState<'a> {
-    fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: AppEvent) {}
+impl<'a> ApplicationHandler<()> for AppState<'a> {
+    fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, event: ()) {}
 
-    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {}
+    fn resumed(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {}
 
     fn window_event(
         &mut self,
@@ -82,13 +80,11 @@ impl<'a> ApplicationHandler<AppEvent> for AppState<'a> {
 
     fn device_event(
         &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-        device_id: winit::event::DeviceId,
-        event: winit::event::DeviceEvent,
+        _event_loop: &winit::event_loop::ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        _event: winit::event::DeviceEvent,
     ) {
     }
 
-    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        // nothingness
-    }
+    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {}
 }

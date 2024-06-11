@@ -2,10 +2,7 @@ use std::sync::{Arc, Mutex};
 pub use wgpu;
 pub use winit;
 
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::ControlFlow,
-};
+use winit::event_loop::ControlFlow;
 
 mod app_handler;
 pub mod asset_management;
@@ -70,7 +67,6 @@ impl<'a> EventLoop<'a> {
             window.lock().unwrap().configure_surface(&adapter, &device);
         }
         let windows = self.windows.clone();
-        let mut first_frame = true;
         let device = Arc::new(Mutex::new(device));
         let queue = Arc::new(Mutex::new(queue));
         for window in &self.windows {
@@ -85,6 +81,6 @@ impl<'a> EventLoop<'a> {
             queue,
             windows,
         };
-        self.handle.run_app(state).unwrap()
+        self.handle.run_app(&mut state).unwrap()
     }
 }
