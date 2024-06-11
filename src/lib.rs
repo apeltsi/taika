@@ -13,6 +13,13 @@ pub mod math;
 pub mod rendering;
 pub mod window;
 
+static QUIT: Mutex<bool> = Mutex::new(false);
+
+pub fn request_quit() {
+    let mut quit = QUIT.lock().unwrap();
+    *quit = true;
+}
+
 pub struct EventLoop<'a> {
     handle: winit::event_loop::EventLoop<()>,
     windows: Vec<Arc<Mutex<window::Window<'a>>>>,
@@ -69,7 +76,8 @@ impl<'a> EventLoop<'a> {
             window
                 .lock()
                 .unwrap()
-                .do_device_init(device.clone(), queue.clone()).await;
+                .do_device_init(device.clone(), queue.clone())
+                .await;
         }
         self.handle
             .run(move |event, window_target| {
@@ -81,6 +89,9 @@ impl<'a> EventLoop<'a> {
                         window.do_open();
                     }
                     first_frame = false;
+                }
+                if *QUIT.lock().unwrap() {
+                    window_target.exit();
                 }
                 #[cfg(not(target_arch = "wasm32"))]
                 window_target.set_control_flow(ControlFlow::Poll);
