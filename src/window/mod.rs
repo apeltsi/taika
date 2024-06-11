@@ -19,11 +19,10 @@ impl Window<'_> {
         pipeline: Arc<Mutex<dyn RenderPipeline>>,
         event_handler: Box<dyn EventHandler>,
     ) -> Arc<Mutex<Window<'a>>> {
-        let window = winit::window::WindowBuilder::new()
+        let window_attributes = winit::window::WindowAttributes::default()
             .with_title("Taika window")
-            .with_min_inner_size(winit::dpi::LogicalSize::new(20.0, 20.0))
-            .build(event_loop.get_event_loop())
-            .unwrap();
+            .with_min_inner_size(winit::dpi::LogicalSize::new(20.0, 20.0));
+        let window = event_loop.handle.create_window(window_attributes).unwrap();
         let window = Window {
             handle: Arc::new(window),
             surface: None,
