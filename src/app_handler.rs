@@ -53,6 +53,10 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
     ) {
         if *QUIT.lock().unwrap() {
             event_loop.exit();
+            for window in self.windows.iter() {
+                window.lock().unwrap().do_closed();
+            }
+            return;
         }
         for window in self.windows.iter() {
             if window.lock().unwrap().get_window_id() == window_id {
