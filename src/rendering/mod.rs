@@ -143,6 +143,9 @@ impl<'a> PrimaryDrawPass<'a> {
 
     pub fn remove_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
         self.drawables.retain(|d| !Arc::ptr_eq(d, &drawable));
+        // if no frame has been rendered between adding the drawable and removing it, it will be in new_drawables
+        // hence we have to check it aswell
+        self.new_drawables.retain(|d| !Arc::ptr_eq(d, &drawable));
     }
 
     pub fn set_target(&mut self, target: Option<Arc<Mutex<wgpu::TextureView>>>) {
