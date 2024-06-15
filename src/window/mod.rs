@@ -198,12 +198,12 @@ impl Window<'_> {
         self.event_handler.window_close();
     }
 
-    pub(crate) async fn do_device_init(
+    pub(crate) fn do_device_init(
         &mut self,
         device: Arc<Mutex<wgpu::Device>>,
         queue: Arc<Mutex<wgpu::Queue>>,
     ) {
-        self.event_handler.device_init(device, queue).await;
+        self.event_handler.device_init(device, queue);
     }
 
     pub(crate) fn do_window_event(&mut self, event: &winit::event::WindowEvent) {

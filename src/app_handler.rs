@@ -34,15 +34,12 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
         let device = self.device.clone();
         let queue = self.queue.clone();
         // we have to block with tokio
-        futures::executor::block_on(async move {
-            for window in &windows {
-                window
-                    .lock()
-                    .unwrap()
-                    .do_device_init(device.clone(), queue.clone())
-                    .await;
-            }
-        });
+        for window in &windows {
+            window
+                .lock()
+                .unwrap()
+                .do_device_init(device.clone(), queue.clone());
+        }
         for window in &self.windows {
             window.lock().unwrap().request_redraw();
         }

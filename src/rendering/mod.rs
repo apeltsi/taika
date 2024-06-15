@@ -142,7 +142,7 @@ impl<'a> PrimaryDrawPass<'a> {
     }
 
     pub fn remove_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
-        self.drawables.retain(|d| Arc::ptr_eq(d, &drawable));
+        self.drawables.retain(|d| !Arc::ptr_eq(d, &drawable));
     }
 
     pub fn set_target(&mut self, target: Option<Arc<Mutex<wgpu::TextureView>>>) {
@@ -151,6 +151,10 @@ impl<'a> PrimaryDrawPass<'a> {
 
     pub fn set_clear_color(&mut self, color: wgpu::Color) {
         self.clear_color = color;
+    }
+
+    pub fn drawable_count(&self) -> usize {
+        self.drawables.len()
     }
 }
 
