@@ -10,6 +10,6 @@ edition = "2021"
 winit = "0.30.3"
 wgpu = {version = "0.20.1"}
 tokio = {version = "1", features = ["full"]}
-bytemuck = {version = "1.15.0", features = ["derive"]}
+bytemuck = {version = "1.16.1", features = ["derive"]}
 rand = "0.8.5"
 async-trait = "0.1"
