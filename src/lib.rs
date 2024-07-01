@@ -38,7 +38,15 @@ impl<'a> EventLoop<'a> {
     }
 
     pub async fn run(self) {
+        #[cfg(not(target_os = "windows"))]
         let instance = wgpu::Instance::default();
+        // NOTE: As of wgpu 0.20 there are some performance issues with the vulkan backend on
+        // windows, so we will use dx12 for now
+        #[cfg(target_os = "windows")]
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::DX12,
+            ..Default::default()
+        });
         // now lets init our windows' surfaces
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -46,8 +54,14 @@ impl<'a> EventLoop<'a> {
                 force_fallback_adapter: false,
                 compatible_surface: None,
             })
-            .await
-            .unwrap();
+            .await;
+        let adapter = match adapter {
+            Some(adapter) => adapter,
+            None => {
+                eprintln!("No suitable adapter found, taika will now exit.");
+                return;
+            }
+        };
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {

@@ -200,10 +200,11 @@ impl Window<'_> {
 
     pub(crate) fn do_device_init(
         &mut self,
+        adapter: &wgpu::Adapter,
         device: Arc<Mutex<wgpu::Device>>,
         queue: Arc<Mutex<wgpu::Queue>>,
     ) {
-        self.event_handler.device_init(device, queue);
+        self.event_handler.device_init(adapter, device, queue);
     }
 
     pub(crate) fn do_window_event(&mut self, event: &winit::event::WindowEvent) {

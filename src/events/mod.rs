@@ -16,6 +16,11 @@ pub trait EventHandler {
     fn window_unfocus(&mut self);
     fn window_frame(&mut self);
     fn window_after_frame(&mut self);
-    fn device_init(&mut self, device: Arc<Mutex<wgpu::Device>>, queue: Arc<Mutex<wgpu::Queue>>);
+    fn device_init(
+        &mut self,
+        adapter: &wgpu::Adapter,
+        device: Arc<Mutex<wgpu::Device>>,
+        queue: Arc<Mutex<wgpu::Queue>>,
+    );
     fn window_event(&mut self, event: &winit::event::WindowEvent);
 }

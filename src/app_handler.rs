@@ -33,12 +33,11 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
         let windows = self.windows.clone();
         let device = self.device.clone();
         let queue = self.queue.clone();
-        // we have to block with tokio
         for window in &windows {
             window
                 .lock()
                 .unwrap()
-                .do_device_init(device.clone(), queue.clone());
+                .do_device_init(&self.adapter, device.clone(), queue.clone());
         }
         for window in &self.windows {
             window.lock().unwrap().request_redraw();
