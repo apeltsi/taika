@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 
+use crate::window::{TargetProperties, Window};
+
 #[async_trait]
 pub trait EventHandler {
     fn window_open(&mut self);
@@ -21,6 +23,7 @@ pub trait EventHandler {
         adapter: &wgpu::Adapter,
         device: Arc<Mutex<wgpu::Device>>,
         queue: Arc<Mutex<wgpu::Queue>>,
+        target_properties: TargetProperties,
     );
     fn window_event(&mut self, event: &winit::event::WindowEvent);
 }

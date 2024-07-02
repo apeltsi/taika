@@ -204,7 +204,8 @@ impl Window<'_> {
         device: Arc<Mutex<wgpu::Device>>,
         queue: Arc<Mutex<wgpu::Queue>>,
     ) {
-        self.event_handler.device_init(adapter, device, queue);
+        self.event_handler
+            .device_init(adapter, device, queue, self.target_properties.clone());
     }
 
     pub(crate) fn do_window_event(&mut self, event: &winit::event::WindowEvent) {
