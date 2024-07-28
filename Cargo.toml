@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 # winit = {version = "0.29.14", features = ["x11", "rwh_06"], default-features = false}
-winit = "0.30.3"
-wgpu = {version = "0.20.1"}
+winit = "0.30.4"
+wgpu = {version = "22.0.0"}
 tokio = {version = "1", features = ["full"]}
 bytemuck = {version = "1.16.1", features = ["derive"]}
 rand = "0.8.5"

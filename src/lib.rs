@@ -69,6 +69,7 @@ impl<'a> EventLoop<'a> {
                     required_features: wgpu::Features::VERTEX_WRITABLE_STORAGE, // TODO: Make this configurable
                     required_limits: wgpu::Limits::downlevel_defaults()
                         .using_resolution(adapter.limits()),
+                    memory_hints: wgpu::MemoryHints::Performance,
                 },
                 None,
             )
