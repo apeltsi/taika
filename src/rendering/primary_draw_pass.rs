@@ -9,40 +9,40 @@ use crate::window::TargetProperties;
 
 use super::{drawable::Drawable, RenderPass};
 
-pub struct PrimaryDrawPass<'a> {
-    drawables: BinaryHeap<DrawableElement<'a>>,
-    new_drawables: Vec<(Arc<Mutex<dyn Drawable<'a>>>, u32)>,
+pub struct PrimaryDrawPass {
+    drawables: BinaryHeap<DrawableElement>,
+    new_drawables: Vec<(Arc<Mutex<dyn Drawable>>, u32)>,
     name: String,
     target: Option<Arc<Mutex<wgpu::TextureView>>>,
     clear_color: wgpu::Color,
 }
 
-struct DrawableElement<'a> {
-    drawable: Arc<Mutex<dyn Drawable<'a>>>,
+struct DrawableElement {
+    drawable: Arc<Mutex<dyn Drawable>>,
     z: u32,
 }
 
-impl PartialEq for DrawableElement<'_> {
+impl PartialEq for DrawableElement {
     fn eq(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.drawable, &other.drawable)
     }
 }
 
-impl Eq for DrawableElement<'_> {}
+impl Eq for DrawableElement {}
 
-impl PartialOrd for DrawableElement<'_> {
+impl PartialOrd for DrawableElement {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for DrawableElement<'_> {
+impl Ord for DrawableElement {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.z.cmp(&other.z).reverse()
     }
 }
 
-impl<'a> PrimaryDrawPass<'a> {
+impl PrimaryDrawPass {
     pub fn new(name: &str, target: Option<Arc<Mutex<wgpu::TextureView>>>) -> Self {
         PrimaryDrawPass {
             drawables: BinaryHeap::new(),
@@ -53,11 +53,11 @@ impl<'a> PrimaryDrawPass<'a> {
         }
     }
 
-    pub fn add_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>, z: u32) {
+    pub fn add_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable>>, z: u32) {
         self.new_drawables.push((drawable, z));
     }
 
-    pub fn remove_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable<'a>>>) {
+    pub fn remove_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable>>) {
         self.drawables
             .retain(|d| !Arc::ptr_eq(&d.drawable, &drawable));
         // if no frame has been rendered between adding the drawable and removing it, it will be in new_drawables
@@ -78,7 +78,7 @@ impl<'a> PrimaryDrawPass<'a> {
     }
 }
 
-impl RenderPass for PrimaryDrawPass<'_> {
+impl RenderPass for PrimaryDrawPass {
     fn render(
         &mut self,
         device: &Device,
