@@ -1,8 +1,11 @@
+/// An asset that can be resolved into binary data
 pub trait ResolvableAsset {
     fn resolve(&self) -> Vec<u8>;
     fn get_name(&self) -> &str;
 }
 
+/// An asset that is stored on disk
+#[derive(Debug, Clone)]
 pub struct DiskAsset {
     path: String,
 }
@@ -28,6 +31,8 @@ impl ResolvableAsset for DiskAsset {
     }
 }
 
+/// An asset stored in memory
+#[derive(Debug, Clone)]
 pub struct MemoryAsset {
     data: Vec<u8>,
     name: String,

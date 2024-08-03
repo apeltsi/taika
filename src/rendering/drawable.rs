@@ -2,6 +2,9 @@ use wgpu::RenderPass;
 
 use crate::window::TargetProperties;
 
+/// A drawable object that can be drawn to the screen. If using the
+/// [PrimaryDrawPass](crate::rendering::PrimaryDrawPass) the drawables assigned to it will be
+/// initialized and then drawn in their order
 pub trait Drawable {
     fn init(
         &mut self,

@@ -4,6 +4,7 @@ use winit::dpi::PhysicalSize;
 
 use crate::{events::EventHandler, rendering::RenderPipeline, EventLoop};
 
+/// Represents a window
 pub struct Window<'a> {
     instance: Option<WindowInstance<'a>>,
     surface_config: Option<wgpu::SurfaceConfiguration>,
@@ -19,6 +20,7 @@ pub struct WindowInstance<'a> {
 }
 
 impl Window<'_> {
+    /// Creates a new window, the title can be set by calling [`Window::set_title`]
     pub fn new<'a>(
         event_loop: &mut EventLoop<'a>,
         pipeline: Arc<Mutex<dyn RenderPipeline>>,
@@ -124,10 +126,12 @@ impl Window<'_> {
             .window_resize(size.width.max(1), size.height.max(1), device, queue)
     }
 
+    /// Returns the underlying winit window handle
     pub fn get_handle(&self) -> &winit::window::Window {
         &self.instance.as_ref().unwrap().handle
     }
 
+    /// Returns the window id
     pub fn get_window_id(&self) -> winit::window::WindowId {
         self.instance.as_ref().unwrap().handle.id()
     }
@@ -136,6 +140,7 @@ impl Window<'_> {
         &self.instance.as_ref().unwrap().surface
     }
 
+    /// Sets the title of the window
     pub fn set_title(&mut self, title: &str) {
         if self.instance.is_none() {
             self.title = title.to_string();
@@ -144,6 +149,7 @@ impl Window<'_> {
         }
     }
 
+    /// Resize the window. This might fail silently
     pub fn set_size(&mut self, size: winit::dpi::PhysicalSize<u32>) {
         // for now we dont care about the result
         let _ = self
@@ -154,6 +160,7 @@ impl Window<'_> {
             .request_inner_size(size);
     }
 
+    /// Sets the position of the window
     pub fn set_position(&mut self, position: winit::dpi::PhysicalPosition<i32>) {
         self.instance
             .as_ref()
@@ -162,6 +169,7 @@ impl Window<'_> {
             .set_outer_position(position);
     }
 
+    /// Sets the window to fullscreen
     pub fn set_fullscreen(&mut self, fullscreen: Option<winit::window::Fullscreen>) {
         self.instance
             .as_ref()
@@ -170,6 +178,7 @@ impl Window<'_> {
             .set_fullscreen(fullscreen);
     }
 
+    /// Returns the taika [`RenderPipeline`]
     pub fn get_render_pipeline(&self) -> Arc<Mutex<dyn RenderPipeline>> {
         self.render_pipeline.clone()
     }
@@ -190,10 +199,6 @@ impl Window<'_> {
         }
     }
 
-    pub(crate) fn do_open(&mut self) {
-        self.event_handler.window_open();
-    }
-
     pub(crate) fn do_closed(&mut self) {
         self.event_handler.window_close();
     }
@@ -212,11 +217,13 @@ impl Window<'_> {
         self.event_handler.window_event(event);
     }
 
+    /// Returns the `TargetProperties` of this window
     pub fn get_target_properties(&self) -> &TargetProperties {
         &self.target_properties
     }
 }
 
+/// Info about the texture format used by the window
 #[derive(Debug, Clone)]
 pub struct TargetProperties {
     pub format: wgpu::TextureFormat,

@@ -9,6 +9,7 @@ use crate::window::TargetProperties;
 
 use super::{drawable::Drawable, RenderPass};
 
+/// A basic [`RenderPass`] that draws drawables in order of their z value
 pub struct PrimaryDrawPass {
     drawables: BinaryHeap<DrawableElement>,
     new_drawables: Vec<(Arc<Mutex<dyn Drawable>>, u32)>,
@@ -43,6 +44,7 @@ impl Ord for DrawableElement {
 }
 
 impl PrimaryDrawPass {
+    /// Initializes the render pass with a name (shown in error messages and renderdoc) and an optional target. If no target is provided the pass will use the previous or default target of the [`super::RenderPipeline`]
     pub fn new(name: &str, target: Option<Arc<Mutex<wgpu::TextureView>>>) -> Self {
         PrimaryDrawPass {
             drawables: BinaryHeap::new(),
@@ -53,10 +55,12 @@ impl PrimaryDrawPass {
         }
     }
 
+    /// Adds a drawable to the render pass with a z value. The drawables will be drawn in order of their z value. The highest number is drawn last == visible on top
     pub fn add_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable>>, z: u32) {
         self.new_drawables.push((drawable, z));
     }
 
+    /// Removes the drawable from the render pass
     pub fn remove_drawable(&mut self, drawable: Arc<Mutex<dyn Drawable>>) {
         self.drawables
             .retain(|d| !Arc::ptr_eq(&d.drawable, &drawable));
@@ -65,14 +69,17 @@ impl PrimaryDrawPass {
         self.new_drawables.retain(|d| !Arc::ptr_eq(&d.0, &drawable));
     }
 
+    /// Set the target of the render pass. If no target is provided the pass will use the previous or default target of the [`super::RenderPipeline`]
     pub fn set_target(&mut self, target: Option<Arc<Mutex<wgpu::TextureView>>>) {
         self.target = target;
     }
 
+    /// Set the clear color (or background color) of the render pass
     pub fn set_clear_color(&mut self, color: wgpu::Color) {
         self.clear_color = color;
     }
 
+    /// Returns the number of drawables assigned to this [`RenderPass`]
     pub fn drawable_count(&self) -> usize {
         self.drawables.len()
     }

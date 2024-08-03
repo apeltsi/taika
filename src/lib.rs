@@ -1,3 +1,38 @@
+//! A low-cost abstraction layer on top of [wgpu](https://crates.io/crates/wgpu) and [winit](https://crates.io/crates/winit) to make their APIs more ergonomic.
+//!
+//! # State
+//! Taika is early in development, meaning large API changes are bound to happen. However it is currently being used for a production ready game
+//! which serves as a good testbed for the library.
+//!
+//! # Goals
+//! 1. Simplify window creation
+//! 2. Introduce "RenderPasses" and "RenderPipelines", which are common tropes in game
+//!    engines.
+//! 3. Make API changes in WGPU and Winit less frustrating by providing a semi-stable API. API
+//!    changes will still happen though.
+//! 4. Give full access to WGPU
+//!
+//! In addition to these goals taika also includes some common utilities mainly targeted towards
+//! game-development. Taika also includes a super basic form of asset management. It is designed to
+//! be built upon, not to be a full-fledged asset management system.
+//!
+//! ## What taika doesn't do:
+//! - Input-handling, you can do this yourself by listening to the winit events that are passed
+//!   through to your event-handler
+//! - Audio, use other libraries
+//! - Make rendering easy. You still have to write shaders, and implement the drawable trait, to
+//!   actually issue the drawcalls to the GPU. Taika doesn't make any drawcalls by itself
+//!
+//! # Notes
+//! - When building for Windows, the backend choice is overridden to DX12, as vulkan has some
+//!   input performance issues. (As of wgpu 22.0)
+//! - The naming of [`rendering::RenderPass`] and [`rendering::RenderPipeline`] is a bit confusing at they are also used in
+//!   wgpu.
+//! - No examples currently!
+//!
+//!
+//! # Getting Started
+//! Use the [`EventLoop`] struct to get started
 use std::sync::{Arc, Mutex};
 pub use wgpu;
 pub use winit;
@@ -13,17 +48,21 @@ pub mod window;
 
 static QUIT: Mutex<bool> = Mutex::new(false);
 
+/// Request the event loop to quit, closing all windows
 pub fn request_quit() {
     let mut quit = QUIT.lock().unwrap();
     *quit = true;
 }
 
+/// Used to create windows and run the main loop of the application.
 pub struct EventLoop<'a> {
     handle: winit::event_loop::EventLoop<()>,
     windows: Vec<Arc<Mutex<window::Window<'a>>>>,
 }
 
 impl<'a> EventLoop<'a> {
+    /// Initializes a new taika event loop.
+    /// The event loop is used to create windows and run the main loop of the application.
     pub fn new() -> Result<EventLoop<'a>, winit::error::EventLoopError> {
         let event_loop = winit::event_loop::EventLoop::new()?;
         event_loop.set_control_flow(ControlFlow::Wait);
@@ -33,14 +72,16 @@ impl<'a> EventLoop<'a> {
         })
     }
 
+    /// Returns the underlying winit event loop
     pub fn get_event_loop(&self) -> &winit::event_loop::EventLoop<()> {
         &self.handle
     }
 
+    /// Runs the event loop. This function will block until all windows are closed.
     pub async fn run(self) {
         #[cfg(not(target_os = "windows"))]
         let instance = wgpu::Instance::default();
-        // NOTE: As of wgpu 0.20 there are some performance issues with the vulkan backend on
+        // NOTE: As of wgpu 22.0 there are some performance issues with the vulkan backend on
         // windows, so we will use dx12 for now
         #[cfg(target_os = "windows")]
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {

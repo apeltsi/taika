@@ -7,8 +7,6 @@ use wgpu::{CommandEncoder, Device, Queue};
 
 use crate::window::TargetProperties;
 
-use self::drawable::Drawable;
-
 pub mod compute;
 pub mod drawable;
 mod primary_draw_pass;
@@ -17,13 +15,13 @@ pub mod vertex;
 pub use primary_draw_pass::PrimaryDrawPass;
 
 pub trait RenderPass {
-    fn render<'a>(
-        &'a mut self,
+    fn render(
+        &mut self,
         device: &Device,
         encoder: &mut CommandEncoder,
         queue: &Queue,
         target: &wgpu::TextureView,
-        global_bind_group: &'a wgpu::BindGroup,
+        global_bind_group: &wgpu::BindGroup,
         bind_group_layout: &wgpu::BindGroupLayout,
         target_properties: &TargetProperties,
     );
@@ -37,12 +35,12 @@ pub trait RenderPass {
 }
 
 pub trait RenderPipeline {
-    fn render<'a>(
-        &'a mut self,
+    fn render(
+        &mut self,
         device: &Device,
         encoder: &mut CommandEncoder,
         queue: &Queue,
-        target: &'a wgpu::TextureView,
+        target: &wgpu::TextureView,
         target_properties: &TargetProperties,
     );
 
