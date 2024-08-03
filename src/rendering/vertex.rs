@@ -1,3 +1,4 @@
+/// Super simple vertex that can be sent to the GPU. Includes only the position of the vertex in 3D.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PositionVertex {
@@ -19,6 +20,7 @@ impl PositionVertex {
     }
 }
 
+/// Vertex with a 3D position and a 2D UV coordinate
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PositionUVVertex {
