@@ -11,7 +11,7 @@ keywords = ["graphics", "wgpu", "winit"]
 categories = ["graphics"]
 
 [dependencies]
-winit = "0.30.4"
+winit = "0.30.5"
 wgpu = {version = "22.1.0"}
 tokio = {version = "1", features = ["full"]}
 bytemuck = {version = "1.16.1", features = ["derive"]}
