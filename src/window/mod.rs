@@ -178,6 +178,15 @@ impl Window<'_> {
             .set_fullscreen(fullscreen);
     }
 
+    /// Sets the visibility of the cursor
+    pub fn set_cursor_visible(&mut self, visible: bool) {
+        self.instance
+            .as_ref()
+            .unwrap()
+            .handle
+            .set_cursor_visible(visible);
+    }
+
     /// Returns the taika [`RenderPipeline`]
     pub fn get_render_pipeline(&self) -> Arc<Mutex<dyn RenderPipeline>> {
         self.render_pipeline.clone()
