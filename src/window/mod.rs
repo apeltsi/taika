@@ -10,6 +10,7 @@ pub struct Window<'a> {
     event_handler: Box<dyn EventHandler>,
     target_properties: TargetProperties,
     pub(crate) title: String,
+    pub(crate) cursor_visible: bool,
 }
 
 pub struct WindowInstance<'a> {
@@ -34,6 +35,7 @@ impl Window<'_> {
                 view_format: wgpu::TextureFormat::Rgba8Unorm, // later in runtime
             },
             title: "Taika Window".to_string(),
+            cursor_visible: true,
         };
         let window = Arc::new(Mutex::new(window));
         event_loop.windows.push(window.clone());
@@ -51,6 +53,7 @@ impl Window<'_> {
             handle: window,
             surface,
         });
+        self.set_cursor_visible(self.cursor_visible);
         Ok(())
     }
 
@@ -143,7 +146,7 @@ impl Window<'_> {
         self.instance.as_ref().unwrap().handle.id()
     }
 
-    pub(crate) fn get_surface<'a>(&'a self) -> &wgpu::Surface<'a> {
+    pub(crate) fn get_surface(&self) -> &wgpu::Surface {
         &self.instance.as_ref().unwrap().surface
     }
 
@@ -187,11 +190,15 @@ impl Window<'_> {
 
     /// Sets the visibility of the cursor
     pub fn set_cursor_visible(&mut self, visible: bool) {
-        self.instance
-            .as_ref()
-            .unwrap()
-            .handle
-            .set_cursor_visible(visible);
+        if self.instance.is_none() {
+            self.cursor_visible = visible;
+        } else {
+            self.instance
+                .as_ref()
+                .unwrap()
+                .handle
+                .set_cursor_visible(visible);
+        }
     }
 
     /// Returns the taika [`RenderPipeline`]
