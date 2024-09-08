@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
-
-use winit::dpi::PhysicalSize;
-
 use crate::{events::EventHandler, rendering::RenderPipeline, EventLoop, RenderSettings};
+use std::sync::{Arc, Mutex};
+use winit::dpi::PhysicalSize;
 
 /// Represents a window
 pub struct Window<'a> {

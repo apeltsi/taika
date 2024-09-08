@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
-
-use winit::{application::ApplicationHandler, event::WindowEvent};
-
 use crate::{window::Window, RenderSettings, QUIT};
+use std::sync::{Arc, Mutex};
+use winit::{application::ApplicationHandler, event::WindowEvent};
 
 pub(crate) struct AppState<'a> {
     pub device: Arc<Mutex<wgpu::Device>>,

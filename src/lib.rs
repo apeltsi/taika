@@ -46,9 +46,12 @@ pub mod window;
 
 static QUIT: Mutex<bool> = Mutex::new(false);
 
+/// Settings for the renderer
 #[derive(Debug, Clone)]
 pub struct RenderSettings {
+    /// Whether or not to enable vsync. VSYNC on might lead to some latency
     pub vsync: bool,
+    /// Features for wgpu
     pub required_features: wgpu::Features,
 }
 
