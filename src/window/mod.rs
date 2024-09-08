@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use winit::dpi::PhysicalSize;
 
-use crate::{events::EventHandler, rendering::RenderPipeline, EventLoop};
+use crate::{events::EventHandler, rendering::RenderPipeline, EventLoop, RenderSettings};
 
 /// Represents a window
 pub struct Window<'a> {
@@ -60,7 +60,12 @@ impl Window<'_> {
         self.instance.as_ref().unwrap().handle.request_redraw();
     }
 
-    pub(crate) fn configure_surface(&mut self, adapter: &wgpu::Adapter, device: &wgpu::Device) {
+    pub(crate) fn configure_surface(
+        &mut self,
+        adapter: &wgpu::Adapter,
+        device: &wgpu::Device,
+        render_settings: &RenderSettings,
+    ) {
         let size = self.instance.as_ref().unwrap().handle.inner_size();
         let size: PhysicalSize<u32> = (size.width.max(1), size.height.max(1)).into();
 
@@ -82,15 +87,19 @@ impl Window<'_> {
         {
             self.target_properties.format = swapchain_format;
         }
+        let mut present_mode = wgpu::PresentMode::AutoNoVsync;
+        if render_settings.vsync {
+            present_mode = wgpu::PresentMode::AutoVsync;
+        }
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: self.target_properties.format,
             width: size.width,
             height: size.height,
-            present_mode: wgpu::PresentMode::AutoVsync,
+            present_mode,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
             view_formats: vec![self.target_properties.view_format],
-            desired_maximum_frame_latency: 2,
+            desired_maximum_frame_latency: 1,
         };
         self.instance
             .as_ref()
@@ -176,6 +185,15 @@ impl Window<'_> {
             .unwrap()
             .handle
             .set_fullscreen(fullscreen);
+    }
+
+    /// Sets the visibility of the cursor
+    pub fn set_cursor_visible(&mut self, visible: bool) {
+        self.instance
+            .as_ref()
+            .unwrap()
+            .handle
+            .set_cursor_visible(visible);
     }
 
     /// Returns the taika [`RenderPipeline`]
