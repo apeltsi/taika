@@ -87,10 +87,10 @@ impl Window<'_> {
             format: self.target_properties.format,
             width: size.width,
             height: size.height,
-            present_mode: wgpu::PresentMode::AutoVsync,
+            present_mode: wgpu::PresentMode::AutoNoVsync,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
             view_formats: vec![self.target_properties.view_format],
-            desired_maximum_frame_latency: 2,
+            desired_maximum_frame_latency: 1,
         };
         self.instance
             .as_ref()
