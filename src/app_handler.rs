@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use winit::{application::ApplicationHandler, event::WindowEvent};
 
-use crate::{window::Window, QUIT};
+use crate::{window::Window, RenderSettings, QUIT};
 
 pub(crate) struct AppState<'a> {
     pub device: Arc<Mutex<wgpu::Device>>,
@@ -10,6 +10,7 @@ pub(crate) struct AppState<'a> {
     pub windows: Vec<Arc<Mutex<Window<'a>>>>,
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,
+    pub render_settings: RenderSettings,
 }
 
 impl<'a> ApplicationHandler<()> for AppState<'a> {
@@ -25,10 +26,11 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
         }
 
         for window in &self.windows {
-            window
-                .lock()
-                .unwrap()
-                .configure_surface(&self.adapter, &self.device.lock().unwrap());
+            window.lock().unwrap().configure_surface(
+                &self.adapter,
+                &self.device.lock().unwrap(),
+                &self.render_settings,
+            );
         }
         let windows = self.windows.clone();
         let device = self.device.clone();

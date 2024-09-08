@@ -24,8 +24,6 @@
 //!   actually issue the drawcalls to the GPU. Taika doesn't make any drawcalls by itself
 //!
 //! # Notes
-//! - When building for Windows, the backend choice is overridden to DX12, as vulkan has some
-//!   input performance issues. (As of wgpu 22.0)
 //! - The naming of [`rendering::RenderPass`] and [`rendering::RenderPipeline`] is a bit confusing at they are also used in
 //!   wgpu.
 //! - No examples currently!
@@ -48,6 +46,21 @@ pub mod window;
 
 static QUIT: Mutex<bool> = Mutex::new(false);
 
+#[derive(Debug, Clone)]
+pub struct RenderSettings {
+    pub vsync: bool,
+    pub required_features: wgpu::Features,
+}
+
+impl Default for RenderSettings {
+    fn default() -> Self {
+        Self {
+            vsync: true,
+            required_features: wgpu::Features::empty(),
+        }
+    }
+}
+
 /// Request the event loop to quit, closing all windows
 pub fn request_quit() {
     let mut quit = QUIT.lock().unwrap();
@@ -58,17 +71,21 @@ pub fn request_quit() {
 pub struct EventLoop<'a> {
     handle: winit::event_loop::EventLoop<()>,
     windows: Vec<Arc<Mutex<window::Window<'a>>>>,
+    pub(crate) render_settings: RenderSettings,
 }
 
 impl<'a> EventLoop<'a> {
     /// Initializes a new taika event loop.
     /// The event loop is used to create windows and run the main loop of the application.
-    pub fn new() -> Result<EventLoop<'a>, winit::error::EventLoopError> {
+    pub fn new(
+        render_settings: RenderSettings,
+    ) -> Result<EventLoop<'a>, winit::error::EventLoopError> {
         let event_loop = winit::event_loop::EventLoop::new()?;
         event_loop.set_control_flow(ControlFlow::Wait);
         Ok(EventLoop {
             handle: event_loop,
             windows: Vec::new(),
+            render_settings,
         })
     }
 
@@ -79,15 +96,7 @@ impl<'a> EventLoop<'a> {
 
     /// Runs the event loop. This function will block until all windows are closed.
     pub async fn run(self) {
-        #[cfg(not(target_os = "windows"))]
         let instance = wgpu::Instance::default();
-        // NOTE: As of wgpu 22.0 there are some performance issues with the vulkan backend on
-        // windows, so we will use dx12 for now
-        #[cfg(target_os = "windows")]
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::DX12,
-            ..Default::default()
-        });
         // now lets init our windows' surfaces
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -107,7 +116,7 @@ impl<'a> EventLoop<'a> {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    required_features: wgpu::Features::VERTEX_WRITABLE_STORAGE, // TODO: Make this configurable
+                    required_features: self.render_settings.required_features,
                     required_limits: wgpu::Limits::downlevel_defaults()
                         .using_resolution(adapter.limits()),
                     memory_hints: wgpu::MemoryHints::Performance,
@@ -125,6 +134,7 @@ impl<'a> EventLoop<'a> {
             windows,
             adapter,
             instance,
+            render_settings: self.render_settings.clone(),
         };
         self.handle.run_app(&mut state).unwrap()
     }
