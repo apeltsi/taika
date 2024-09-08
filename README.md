@@ -29,8 +29,6 @@ be built upon, not to be a full-fledged asset management system.
   actually issue the drawcalls to the GPU. Taika doesn't make any drawcalls by itself
 
 # Notes
-- When building for Windows, the backend choice is overridden to DX12, as vulkan has some
-  input performance issues. (As of wgpu 22.0)
 - The naming of `rendering::RenderPass` and `rendering::RenderPipeline` is a bit confusing at they are also used in
   wgpu.
 - No examples currently!
