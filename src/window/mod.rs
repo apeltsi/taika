@@ -1,5 +1,8 @@
 use crate::{events::EventHandler, rendering::RenderPipeline, EventLoop, RenderSettings};
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 use winit::dpi::PhysicalSize;
 
 /// Represents a window
@@ -11,6 +14,7 @@ pub struct Window<'a> {
     target_properties: TargetProperties,
     pub(crate) title: String,
     pub(crate) cursor_visible: bool,
+    pub(crate) last_frame: Instant,
 }
 
 pub struct WindowInstance<'a> {
@@ -36,6 +40,7 @@ impl Window<'_> {
             },
             title: "Taika Window".to_string(),
             cursor_visible: true,
+            last_frame: Instant::now(),
         };
         let window = Arc::new(Mutex::new(window));
         event_loop.windows.push(window.clone());
@@ -55,6 +60,10 @@ impl Window<'_> {
         });
         self.set_cursor_visible(self.cursor_visible);
         Ok(())
+    }
+
+    pub(crate) fn pre_present_notify(&self) {
+        self.instance.as_ref().unwrap().handle.pre_present_notify();
     }
 
     pub(crate) fn request_redraw(&self) {

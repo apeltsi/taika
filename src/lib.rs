@@ -53,6 +53,8 @@ pub struct RenderSettings {
     pub vsync: bool,
     /// Features for wgpu
     pub required_features: wgpu::Features,
+    /// Maximun allowed framerate, only applies is `vsync` is false
+    pub max_framerate: Option<u16>,
 }
 
 impl Default for RenderSettings {
@@ -60,6 +62,7 @@ impl Default for RenderSettings {
         Self {
             vsync: true,
             required_features: wgpu::Features::empty(),
+            max_framerate: None,
         }
     }
 }
