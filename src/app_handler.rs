@@ -1,5 +1,8 @@
 use crate::{window::Window, RenderSettings, QUIT};
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 use winit::{application::ApplicationHandler, event::WindowEvent};
 
 pub(crate) struct AppState<'a> {
@@ -76,6 +79,16 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
                     }
                     WindowEvent::RedrawRequested => {
                         let mut window = window.lock().unwrap();
+                        if let Some(max_framerate) = self.render_settings.max_framerate {
+                            if window.last_frame.elapsed().as_secs_f64()
+                                < 1.0 / max_framerate as f64
+                                && !self.render_settings.vsync
+                            {
+                                window.request_redraw();
+                                break;
+                            }
+                        }
+                        window.last_frame = Instant::now();
                         window.do_frame();
                         let surface = window.get_surface();
                         let frame = surface.get_current_texture();
@@ -102,6 +115,7 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
                             window.get_target_properties(),
                         );
                         self.queue.lock().unwrap().submit(Some(encoder.finish()));
+                        window.pre_present_notify();
                         frame.present();
                         window.do_after_frame();
                         window.request_redraw();
@@ -109,6 +123,7 @@ impl<'a> ApplicationHandler<()> for AppState<'a> {
                     _ => {}
                 }
                 window.lock().unwrap().do_window_event(&event);
+                break;
             }
         }
     }
