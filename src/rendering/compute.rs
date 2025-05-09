@@ -11,6 +11,7 @@ pub trait ComputeTask {
         encoder: &mut wgpu::CommandEncoder,
         queue: &wgpu::Queue,
         global_bind_group: &wgpu::BindGroup,
+        target: &wgpu::TextureView,
     );
 }
 
@@ -43,7 +44,7 @@ impl RenderPass for ComputePass {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         queue: &wgpu::Queue,
-        _target: &wgpu::TextureView,
+        target: &wgpu::TextureView,
         global_bind_group: &'a wgpu::BindGroup,
         _bind_group_layout: &wgpu::BindGroupLayout,
         _target_properties: &TargetProperties,
@@ -55,7 +56,7 @@ impl RenderPass for ComputePass {
         for task in &mut self.tasks {
             task.lock()
                 .unwrap()
-                .compute(device, encoder, queue, global_bind_group);
+                .compute(device, encoder, queue, global_bind_group, target);
         }
     }
 

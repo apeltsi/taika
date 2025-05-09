@@ -112,23 +112,24 @@ impl<'a> EventLoop<'a> {
             })
             .await;
         let adapter = match adapter {
-            Some(adapter) => adapter,
-            None => {
-                eprintln!("No suitable adapter found, taika will now exit.");
+            Ok(adapter) => adapter,
+            Err(e) => {
+                eprintln!(
+                    "No suitable adapter found, taika will now exit. Error:\n{}",
+                    e
+                );
                 return;
             }
         };
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: self.render_settings.required_features,
-                    required_limits: wgpu::Limits::downlevel_defaults()
-                        .using_resolution(adapter.limits()),
-                    memory_hints: wgpu::MemoryHints::Performance,
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: self.render_settings.required_features,
+                required_limits: wgpu::Limits::downlevel_defaults()
+                    .using_resolution(adapter.limits()),
+                memory_hints: wgpu::MemoryHints::Performance,
+                trace: wgpu::Trace::Off,
+            })
             .await
             .expect("Failed to create device");
         let windows = self.windows.clone();
