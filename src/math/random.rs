@@ -1,5 +1,5 @@
 use rand::{
-    distributions::uniform::{SampleRange, SampleUniform},
+    distr::uniform::{SampleRange, SampleUniform},
     Rng,
 };
 /// Generate a random number in the range.
@@ -8,6 +8,6 @@ where
     T: SampleUniform,
     R: SampleRange<T>,
 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(range)
+    let mut rng = rand::rng();
+    rng.random_range(range)
 }
